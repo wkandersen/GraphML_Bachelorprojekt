@@ -1,6 +1,6 @@
-from torch_geometric.datasets import OGB_MAG
+from ogb.nodeproppred import PygNodePropPredDataset
 
-dataset = OGB_MAG(root="dataset/")
+dataset = PygNodePropPredDataset(name = "ogbn-mag") 
 
 split_idx = dataset.get_idx_split()
 train_idx, valid_idx, test_idx = split_idx["train"], split_idx["valid"], split_idx["test"]
