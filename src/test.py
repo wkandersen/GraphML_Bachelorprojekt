@@ -7,4 +7,3 @@ data = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt")
 # Check the contents
 print(data)
 
-print("Node Features:", data.x)
