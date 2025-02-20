@@ -7,29 +7,49 @@ from gensim.models import Word2Vec
 from sklearn.metrics.pairwise import euclidean_distances
 import torch
 
+data, _ = torch.load(r"/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
+
+# Assuming `data.edge_index_dict` contains the edge indices for 'paper' citing 'paper' relationship
+paper_cites_edge_index = data.edge_index_dict[('paper', 'cites', 'paper')]
+
+random.seed(99)
 
 # ----------------------------
-# Step 1: Create a Bipartite Graph
+# Step 1: Create a Bipartite Graph from Dataset
 # ----------------------------
-num_nodes_set_1 = 5  # Left column
-num_nodes_set_2 = 5  # Right column
 
-nodes_set_1 = [f"A{i}" for i in range(num_nodes_set_1)]
-nodes_set_2 = [f"B{i}" for i in range(num_nodes_set_2)]
-all_nodes = nodes_set_1 + nodes_set_2
+# Sample 10 random papers that cite each other
+num_samples = 5
+paper_ids = torch.unique(paper_cites_edge_index)  # Get all unique paper IDs
+random_papers = random.sample(list(paper_ids), num_samples)
 
-random.seed(42)
+# Construct the bipartite graph using the sampled papers
+citing_papers = []
+cited_papers = []
 
+# Find which papers cite which ones
+for paper in random_papers:
+    # Get all papers citing the current paper
+    citations = (paper_cites_edge_index[0] == paper).nonzero(as_tuple=True)[0]
+    
+    # Append to citing and cited lists (citing paper -> cited paper)
+    citing_papers.extend([paper] * len(citations))
+    cited_papers.extend(paper_cites_edge_index[1][citations].tolist())
+
+# Convert to tensors
+citing_papers = torch.tensor(citing_papers)
+cited_papers = torch.tensor(cited_papers)
+
+# Create a NetworkX graph for visualization
 G = nx.Graph()
-G.add_nodes_from(nodes_set_1, bipartite=0)
-G.add_nodes_from(nodes_set_2, bipartite=1)
 
-edges = []
-for u in nodes_set_1:
-    for v in nodes_set_2:
-        if random.random() > 0.5:  # 50% chance of an edge
-            G.add_edge(u, v)
-            edges.append((u, v))
+# Add edges to the graph
+for i in range(citing_papers.shape[0]):
+    G.add_edge(citing_papers[i].item(), cited_papers[i].item())
+
+# Get the set of nodes for each group
+nodes_set_1 = set(citing_papers.tolist())  # Citing papers
+nodes_set_2 = set(cited_papers.tolist())   # Cited papers
 
 # ----------------------------
 # Step 2: Generate Random Walks for Embedding
@@ -56,6 +76,10 @@ def generate_metapath_walks(G, nodes, walk_length=10, num_walks=10):
             walks.append(walk)
     return walks
 
+# Get all unique nodes from the graph for random walks
+all_nodes = list(G.nodes)
+
+# Generate random walks from the bipartite graph
 walks = generate_metapath_walks(G, all_nodes, walk_length=5, num_walks=10)
 
 # ----------------------------
@@ -78,32 +102,35 @@ def edge_probability(z_i, z_j, alpha=1.0):
 # Step 5: Reconstruct a New Bipartite Graph Using Probabilities
 # ----------------------------
 new_G = nx.Graph()
-new_G.add_nodes_from(nodes_set_1, bipartite=0)
-new_G.add_nodes_from(nodes_set_2, bipartite=1)
+new_G.add_nodes_from(all_nodes)
 
 alpha = 0.5  # Scaling factor for probability (tuneable)
 
-for u in nodes_set_1:
-    for v in nodes_set_2:
-        prob = edge_probability(embeddings[u], embeddings[v], alpha)
-        if random.random() < prob:  # Sample based on probability
-            new_G.add_edge(u, v)
+# Add edges based on the learned embeddings
+for u in all_nodes:
+    for v in all_nodes:
+        if u != v:
+            prob = edge_probability(embeddings[u], embeddings[v], alpha)
+            if random.random() < prob:  # Sample based on probability
+                new_G.add_edge(u, v)
 
 # ----------------------------
 # Step 6: Visualize Original and Reconstructed Graphs
 # ----------------------------
 fig, axes = plt.subplots(1, 3, figsize=(20, 5))
-pos = {node: (0, i) for i, node in enumerate(nodes_set_1)}
-pos.update({node: (1, i) for i, node in enumerate(nodes_set_2)})
+
+# Create positions for plotting
+pos = {node: (0, idx) for idx, node in enumerate(citing_papers.tolist())}
+pos.update({node: (1, idx) for idx, node in enumerate(cited_papers.tolist())})
 
 # Plot Original Graph
 nx.draw(G, pos, with_labels=True, node_size=1000, node_color="lightblue", edge_color="gray", ax=axes[0])
-axes[0].set_title("Original Graph")
+axes[0].set_title("Original Bipartite Graph")
 
-# Plot Embeddings
+# Plot Embeddings (2D Visualization)
 emb_array = emb_matrix.detach().numpy()
 for idx, node in enumerate(all_nodes):
-    color = 'skyblue' if node in nodes_set_1 else 'salmon'
+    color = 'skyblue' if node in citing_papers.tolist() else 'salmon'
     axes[1].scatter(emb_array[idx, 0], emb_array[idx, 1], c=color, s=150)
     axes[1].text(emb_array[idx, 0], emb_array[idx, 1], node, fontsize=12, ha='center', va='center')
 axes[1].set_title("Learned Node Embeddings (Latent Space)")
@@ -112,6 +139,6 @@ axes[1].set_ylabel("Dimension 2")
 
 # Plot Reconstructed Graph
 nx.draw(new_G, pos, with_labels=True, node_size=1000, node_color="lightblue", edge_color="gray", ax=axes[2])
-axes[2].set_title("Reconstructed Graph")
+axes[2].set_title("Reconstructed Graph from Probabilities")
 
 plt.show()
