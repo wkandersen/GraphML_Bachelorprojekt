@@ -9,7 +9,6 @@ import torch
 
 data, _ = torch.load(r"/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
 
-# Assuming `data.edge_index_dict` contains the edge indices for 'paper' citing 'paper' relationship
 paper_cites_edge_index = data.edge_index_dict[('paper', 'cites', 'paper')]
 
 random.seed(99)
@@ -18,7 +17,7 @@ random.seed(99)
 # Step 1: Create a Bipartite Graph from Dataset
 # ----------------------------
 
-# Sample 10 random papers that cite each other
+# Sample 5 random papers
 num_samples = 5
 paper_ids = torch.unique(paper_cites_edge_index)  # Get all unique paper IDs
 random_papers = random.sample(list(paper_ids), num_samples)
@@ -82,10 +81,12 @@ all_nodes = list(G.nodes)
 # Generate random walks from the bipartite graph
 walks = generate_metapath_walks(G, all_nodes, walk_length=5, num_walks=10)
 
+# hyperparameters walk_length and num_walks
+
 # ----------------------------
 # Step 3: Train Word2Vec Embeddings
 # ----------------------------
-embedding_dim = 8
+embedding_dim = 8 # hyperparameter
 model = Word2Vec(walks, vector_size=embedding_dim, window=3, min_count=0, sg=1, workers=1, epochs=100)
 embeddings = {node: model.wv[node] for node in all_nodes}
 emb_matrix = torch.tensor(np.array([embeddings[node] for node in all_nodes]), dtype=torch.float)
@@ -104,7 +105,7 @@ def edge_probability(z_i, z_j, alpha=1.0):
 new_G = nx.Graph()
 new_G.add_nodes_from(all_nodes)
 
-alpha = 0.5  # Scaling factor for probability (tuneable)
+alpha = 0.5  # Scaling factor for probability (tuneable) - hyperparameter
 
 # Add edges based on the learned embeddings
 for u in all_nodes:
