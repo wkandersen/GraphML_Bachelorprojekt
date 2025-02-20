@@ -4,10 +4,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from gensim.models import Word2Vec
 import torch
-
+import wandb
 # Load the dataset
 data, _ = torch.load(r"/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
 
+walk_length = 5
+num_walks = 10
+epochs = 100
+alpha = -0.5
+
+run = wandb.init(
+    project="corrupt_mnist",
+    config={"walk_length": walk_length, "num_walks": num_walks, "epochs": epochs, "alpha": alpha},
+)
 # Extract citation edges
 paper_cites_edge_index = data.edge_index_dict[('paper', 'cites', 'paper')]
 paper_cites_source = paper_cites_edge_index[0].numpy()
@@ -60,13 +69,13 @@ def generate_metapath_walks(G, nodes, walk_length=10, num_walks=10):
 
 # Generate walks on the bipartite graph
 all_nodes = list(B.nodes)
-walks = generate_metapath_walks(B, all_nodes, walk_length=5, num_walks=10)
+walks = generate_metapath_walks(B, all_nodes, walk_length, num_walks)
 
 # ----------------------------
 # Step 3: Train Word2Vec Embeddings
 # ----------------------------
 embedding_dim = 8
-model = Word2Vec(walks, vector_size=embedding_dim, window=3, min_count=0, sg=1, workers=1, epochs=100)
+model = Word2Vec(walks, epochs, vector_size=embedding_dim, window=3, min_count=0, sg=1, workers=1)
 embeddings = {node: model.wv[node] for node in all_nodes}
 
 # Convert embeddings to tensor
@@ -86,7 +95,7 @@ def edge_probability(z_i, z_j, alpha=1.0):
 new_G = nx.Graph()
 new_G.add_nodes_from(all_nodes)
 
-alpha = 5  # Scaling factor for probability (tuneable)
+# alpha = 5  # Scaling factor for probability (tuneable)
 
 # Ensure edges are only between left and right sets
 for left in left_nodes.values():

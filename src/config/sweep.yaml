@@ -1,18 +1,18 @@
-program: train.py
+program: ogbn_graphs.py
 name: run_${now:%Y-%m-%d_%H-%M-%S}
 project: bachelorproject  # change this
 entity: s224225-danmarks-tekniske-universitet-dtu"  # change this
 
 metric:
-    goal: minimize
-    name: validation_loss
+    goal: maximize
+    name: accuracy
 parameters:
-    :
-        min: 0.0001
-        max: 0.1
-        distribution: log_uniform
-    batch_size:
-        values: [16, 32, 64]
-    epochs:
+    walk_length:
         values: [5, 10, 15]
+    num_walks:
+        values: [10, 15, 20]
+    epochs:
+        values: [50, 100, 150]
+    alpha:
+        values: [-0.5, 0.5, 1.5]
 run_cap: 10
