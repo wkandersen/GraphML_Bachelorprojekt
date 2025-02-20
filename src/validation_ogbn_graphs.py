@@ -1,8 +1,4 @@
 import networkx as nx
-import numpy as np
-import matplotlib.pyplot as plt
-from networkx.algorithms.similarity import graph_edit_distance
-from ogbn_graphs import B, new_G
 
 def compare_bipartite_graphs(G1, G2):
     """
@@ -25,6 +21,3 @@ def compare_bipartite_graphs(G1, G2):
 
     print(f"Common Edges: {len(common_edges)}")
     print(f"Jaccard Similarity of Edges: {jaccard_edges:.4f}")
-
-# Compare graphs
-compare_bipartite_graphs(B, new_G)
