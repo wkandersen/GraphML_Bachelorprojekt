@@ -1,5 +1,9 @@
+name: Load W&B API Key
+
+on: [push, pull_request]  # Runs on every push or PR; modify as needed
+
 jobs:
-  train_model:
+  wandb_login:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -10,8 +14,8 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Install dependencies
+      - name: Install W&B
         run: pip install wandb
 
-      - name: Login to W&B
+      - name: Login to Weights & Biases
         run: wandb login ${{ secrets.WANDB_API_KEY }}
