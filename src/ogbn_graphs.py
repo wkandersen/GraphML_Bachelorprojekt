@@ -147,8 +147,9 @@ def compare_bipartite_graphs(G1, G2):
     common_edges = G1_edges.intersection(G2_edges)
     jaccard_edges = len(common_edges) / len(G1_edges.union(G2_edges))
 
-    print(f"Common Edges: {len(common_edges)}")
-    print(f"Jaccard Similarity of Edges: {jaccard_edges:.4f}")
+    # print(f"Common Edges: {len(common_edges)}")
+    # print(f"Jaccard Similarity of Edges: {jaccard_edges:.4f}")
+    return common_edges, jaccard_edges
 
 # Compare graphs
-compare_bipartite_graphs(B, new_G)
+common_edges, jaccard_edges = compare_bipartite_graphs(B, new_G)
