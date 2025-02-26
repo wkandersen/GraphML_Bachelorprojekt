@@ -1,0 +1,10 @@
+wandb_version: 1
+
+alpha:
+  value: 1.5
+epochs:
+  value: 50
+num_walks:
+  value: 15
+walk_length:
+  value: 5

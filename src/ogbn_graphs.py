@@ -4,26 +4,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from gensim.models import Word2Vec
 import torch
-import wandb
 # Load the dataset
-data, _ = torch.load(r"/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
+data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt")
 
 walk_length = 5
 num_walks = 10
 epochs = 100
 alpha = -0.5
 
-run = wandb.init(
-    project="corrupt_mnist",
-    config={"walk_length": walk_length, "num_walks": num_walks, "epochs": epochs, "alpha": alpha},
-)
+
 # Extract citation edges
 paper_cites_edge_index = data.edge_index_dict[('paper', 'cites', 'paper')]
 paper_cites_source = paper_cites_edge_index[0].numpy()
 paper_cites_target = paper_cites_edge_index[1].numpy()
 
 # Sample 5 papers that actually have citation links
-num_samples = 20
+num_samples = 10
 valid_paper_pairs = [(src, tgt) for src, tgt in zip(paper_cites_source, paper_cites_target) if src != tgt]
 sampled_pairs = random.sample(valid_paper_pairs, num_samples)
 
@@ -74,8 +70,8 @@ walks = generate_metapath_walks(B, all_nodes, walk_length, num_walks)
 # ----------------------------
 # Step 3: Train Word2Vec Embeddings
 # ----------------------------
-embedding_dim = 8
-model = Word2Vec(walks, epochs, vector_size=embedding_dim, window=3, min_count=0, sg=1, workers=1)
+embedding_dim = 50
+model = Word2Vec(walks, vector_size=embedding_dim, window=3, min_count=0, sg=1, workers=1, epochs=10)
 embeddings = {node: model.wv[node] for node in all_nodes}
 
 # Convert embeddings to tensor
@@ -155,10 +151,13 @@ def compare_bipartite_graphs(G1, G2):
     G2_edges = set(G2.edges())
     common_edges = G1_edges.intersection(G2_edges)
     jaccard_edges = len(common_edges) / len(G1_edges.union(G2_edges))
+    accuracy = len(common_edges) / len(G1_edges)
 
     # print(f"Common Edges: {len(common_edges)}")
     # print(f"Jaccard Similarity of Edges: {jaccard_edges:.4f}")
-    return common_edges, jaccard_edges
+    return common_edges, jaccard_edges, accuracy
 
 # Compare graphs
-common_edges, jaccard_edges = compare_bipartite_graphs(B, new_G)
+common_edges, jaccard_edges, accuracy = compare_bipartite_graphs(B, new_G)
+print(f"Jaccard Similarity of Edges: {jaccard_edges:.4f}")
+print(f"Accuracy: {accuracy:.4f}")

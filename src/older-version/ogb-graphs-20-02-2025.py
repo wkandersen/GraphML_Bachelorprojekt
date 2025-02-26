@@ -7,7 +7,7 @@ from gensim.models import Word2Vec
 from sklearn.metrics.pairwise import euclidean_distances
 import torch
 
-data, _ = torch.load(r"/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
+data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt")
 
 paper_cites_edge_index = data.edge_index_dict[('paper', 'cites', 'paper')]
 

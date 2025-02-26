@@ -1,8 +1,9 @@
-program: ogbn_graphs.py
+program: src/ogbn_graphs.py
 name: run_${now:%Y-%m-%d_%H-%M-%S}
 project: bachelorproject  # change this
-entity: s224225-danmarks-tekniske-universitet-dtu"  # change this
+entity: s224225-danmarks-tekniske-universitet-dtu  # change this
 
+method: random
 metric:
     goal: maximize
     name: accuracy

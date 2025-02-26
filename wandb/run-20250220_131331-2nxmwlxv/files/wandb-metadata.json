@@ -1,0 +1,31 @@
+{
+  "os":  "Linux-6.1.127-2-MANJARO-x86_64-with-glibc2.41",
+  "python":  "CPython 3.12.3",
+  "startedAt":  "2025-02-20T12:13:31.488312Z",
+  "program":  "/home/william/Documents/DTU/GraphML_Bachelorprojekt/src/ogbn_graphs.py",
+  "codePath":  "src/ogbn_graphs.py",
+  "git":  {
+    "remote":  "git@github.com:wkandersen/GraphML_Bachelorprojekt.git",
+    "commit":  "fe8562c37daec7b8e61a68a3f4de728a519cbb0d"
+  },
+  "email":  "s224225@dtu.dk",
+  "root":  "/home/william/Documents/DTU/GraphML_Bachelorprojekt",
+  "host":  "william-zenbookum5401qab",
+  "executable":  "/home/william/.conda/envs/Bachelorprojekt/bin/python",
+  "codePathLocal":  "src/ogbn_graphs.py",
+  "cpu_count":  8,
+  "cpu_count_logical":  16,
+  "disk":  {
+    "/":  {
+      "total":  "236251389952",
+      "used":  "130232246272"
+    }
+  },
+  "memory":  {
+    "total":  "16142127104"
+  },
+  "cpu":  {
+    "count":  8,
+    "countLogical":  16
+  }
+}
