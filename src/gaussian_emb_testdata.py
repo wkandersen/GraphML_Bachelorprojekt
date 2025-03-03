@@ -189,6 +189,7 @@ sns.heatmap(conf_matrix, annot=True, fmt='d', cmap="Blues",
 plt.xlabel("Predicted Label")
 plt.ylabel("Actual Label")
 plt.title("Confusion Matrix")
+plt.savefig("confusion_matrix.png")
 plt.show()
 
 # 8 Plot Original Graph, Embeddings, and Reconstructed Graph
@@ -218,6 +219,10 @@ nx.draw(new_G, pos, with_labels=True, node_size=1000,
         node_color=['skyblue' if n in nodes_set_1 else 'salmon' for n in G.nodes()], 
         edge_color="gray", ax=axes[2])
 axes[2].set_title("Reconstructed Graph")
+
+#save the plot
+plt.savefig("output.png")
+
 
 plt.show()
 
