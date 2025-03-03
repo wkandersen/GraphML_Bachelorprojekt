@@ -100,7 +100,7 @@ def link_prediction_loss(z, datamatrix_tensor, alpha=1.0, eps=1e-8):
 
 optimizer = optim.Adam([embedding_tensor],lr=0.01)
 
-num_epochs = 100
+num_epochs = 10
 for epoch in range(num_epochs):
     optimizer.zero_grad()
     loss = link_prediction_loss(embedding_tensor,datamatrix_tensor)

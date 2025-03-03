@@ -49,7 +49,7 @@ datamatrix_tensor = torch.tensor(datamatrix, dtype=torch.long)
 # 3 Create intialization of embedding using Gaussian distribution
 def initialize_embeddings_gaussian(num_nodes, embedding_dim):
     embeddings = {}
-    sigma = 1.0 / math.sqrt(embedding_dim)
+    sigma = 1.0 / math.sqrt(embedding_dim) # måske skal sigma være noget andet?
     for node in range(num_nodes):
         embeddings[node] = [random.gauss(0, sigma) for _ in range(embedding_dim)]
     return embeddings
@@ -62,6 +62,8 @@ embedding_tensor = torch.tensor(
     [embeddings[node] for node in range(num_nodes)],
     dtype=torch.float32, requires_grad=True
 )
+
+print(embedding_tensor)
 
 # 4 create functions for edge_probability and loss
 
@@ -100,6 +102,8 @@ for epoch in range(num_epochs):
         print(f"Epoch [{epoch}], Loss: {loss.item():.4f}")
 
 emb_matrix = embedding_tensor.detach().numpy()
+
+print(emb_matrix)
 
 # 6 Reconstruct Graph Using Edge Probabilities
 new_G = nx.Graph()
