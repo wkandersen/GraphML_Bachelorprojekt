@@ -1,37 +1,46 @@
 import torch
 
-def loss_function(z, datamatrix_tensor, alpha=1.0, eps=1e-8):
-    sum_loss = 0
-    for entry in datamatrix_tensor:
-        label, u_idx, v_idx = entry
-        z_u = z[u_idx]
-        z_v = z[v_idx]
-        prob = edge_probability(z_u, z_v, alpha)
+class LossFunction:
+    def __init__(self, alpha=1.0, eps=1e-8, use_regularization=False):
+        """
+        Initialize the loss function with given parameters.
+        
+        Args:
+            alpha (float): Scaling parameter for edge probability.
+            eps (float): Small value to prevent log(0).
+            use_regularization (bool): Whether to include Gaussian regularization.
+        """
+        self.alpha = alpha
+        self.eps = eps
+        self.use_regularization = use_regularization
 
-        # Numerical stability: clamp probabilities to avoid log(0)
-        prob = torch.clamp(prob, eps, 1 - eps)
+    def edge_probability(self, z_i, z_j):
+        """Compute the probability of an edge existing between two embeddings."""
+        dist = torch.norm(z_i - z_j) ** 2  # Squared Euclidean distance
+        return 1 / (1 + torch.exp(-self.alpha + dist))  # Logistic function
 
-        sum_loss += label.float() * torch.log(prob) + (1 - label.float()) * torch.log(1 - prob)
+    def link_loss(self, label, z_u, z_v):
+        """Compute the loss for a single edge."""
+        prob = self.edge_probability(z_u, z_v)
+        prob = torch.clamp(prob, self.eps, 1 - self.eps)  # Numerical stability
 
-    return -sum_loss / len(datamatrix_tensor)
+        return label.float() * torch.log(prob) + (1 - label.float()) * torch.log(1 - prob)
 
-def loss_function(z, datamatrix_tensor, alpha=1.0, eps=1e-8):
-    sum_loss = 0
-    for entry in datamatrix_tensor:
-        label, u_idx, v_idx = entry
-        z_u = z[u_idx]
-        z_v = z[v_idx]
-        prob = edge_probability(z_u, z_v, alpha)
+    def compute_loss(self, z, datamatrix_tensor):
+        """Compute the total loss for the dataset."""
+        sum_loss = sum(
+            self.link_loss(label, z[u_idx], z[v_idx])
+            for label, u_idx, v_idx in datamatrix_tensor
+        )
 
-        # Numerical stability: clamp probabilities to avoid log(0)
-        prob = torch.clamp(prob, eps, 1 - eps)
+        loss = -sum_loss / len(datamatrix_tensor)
 
-        sum_loss += label.float() * torch.log(prob) + (1 - label.float()) * torch.log(1 - prob)
+        if self.use_regularization:
+            regularization = -0.5 * torch.sum(z ** 2)
+            loss += regularization
 
-    return -sum_loss / len(datamatrix_tensor)
+        return loss
+    
 
-# 5️ Define Loss Function (Using Data Matrix)
-def edge_probability(z_i, z_j, alpha=1.0):
-    dist = torch.norm(z_i - z_j) ** 2  # Squared Euclidean distance using PyTorch
-    return 1 / (1 + torch.exp(-alpha + dist))  # Logistic function using PyTorch
-
+# loss_fn = LossFunction(alpha=1.0, use_regularization=True)
+# loss_value = loss_fn.compute_loss(z, datamatrix_tensor)
