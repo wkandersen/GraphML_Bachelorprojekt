@@ -24,7 +24,7 @@ class LossFunction:
         prob = self.edge_probability(z_u, z_v)
         prob = torch.clamp(prob, self.eps, 1 - self.eps)  # Numerical stability
 
-        return label.float() * torch.log(prob) + (1 - label.float()) * torch.log(1 - prob)
+        return label.float() * torch.log(prob) + (1 - label.float()) * torch.log(1 - prob)        
 
     def compute_loss(self, z, datamatrix_tensor):
         """Compute the total loss for the dataset."""
