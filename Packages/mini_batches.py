@@ -1,0 +1,56 @@
+import random
+import torch
+
+class mini_batches_code:
+    def __init__(self,data,sample_size):
+        self.data = data
+        self.sample_size = sample_size
+
+    def get_batch(self):
+        random.seed(99) 
+        torch.manual_seed(99)
+        list_pcp = list(self.data[0].unique().numpy())
+        random_sample = random.sample(list_pcp, self.sample_size)
+        print(random_sample)
+        for value in random_sample:
+            list_pcp.remove(value)
+        mask = torch.isin(self.data[0], torch.tensor(random_sample))
+        filtered_data = self.data[:,mask]
+        return filtered_data, random_sample
+    
+    def data_matrix(self):
+
+        # Get batch and initialize tensors
+        tensor, random_sample = self.get_batch()
+
+        # Create result tensor from input batch
+        result_tensor = torch.stack([torch.tensor([1, tensor[0, i], tensor[1, i]]) for i in range(tensor.shape[1])])
+
+        # Initialize lists for non_edges and venues
+        non_edges, venues = [], []
+
+        # Add venue links for sampled nodes
+        for i in random_sample:
+            venues.append(torch.tensor([1, i.item(), self.data['y_dict']['paper'][i]]))
+
+            # Find non-existing edges
+            for j in tensor[1].unique():
+                if i != j and not torch.any((result_tensor[:, 1] == i) & (result_tensor[:, 2] == j)): 
+                    non_edges.append(torch.tensor([0, i.item(), j.item()]))
+
+        # Generate all unique pairs in random_sample (without itertools)
+        for i in range(len(random_sample)):
+            for j in range(i + 1, len(random_sample)):  # Ensures unique pairs
+                r, j = random_sample[i], random_sample[j]
+                if self.data['y_dict']['paper'][r] != self.data['y_dict']['paper'][j]:
+                    venues.append(torch.tensor([0, r, self.data['y_dict']['paper'][j]]))
+                    venues.append(torch.tensor([0, j, self.data['y_dict']['paper'][r]]))
+
+        # Convert lists to tensors only once to optimize memory usage
+        non_edges_tensor = torch.stack(non_edges) if non_edges else torch.empty((0, 3), dtype=torch.long)
+        venues_tensor = torch.stack(venues) if venues else torch.empty((0, 3), dtype=torch.long)
+
+        # Merge all tensors
+        data_matrix = torch.cat((result_tensor, non_edges_tensor, venues_tensor), dim=0)
+        return data_matrix
+
