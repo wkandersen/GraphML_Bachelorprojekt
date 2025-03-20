@@ -1,4 +1,5 @@
 import random
+import itertools
 import torch
 
 class mini_batches_code:
@@ -8,8 +9,8 @@ class mini_batches_code:
         self.edge_type = edge_type
 
     def get_batch(self):
-        # random.seed(99) 
-        # torch.manual_seed(99)
+        random.seed(99) 
+        torch.manual_seed(99)
         list_pcp = list(self.data[0].unique().numpy())
         random_sample = random.sample(list_pcp, self.sample_size)
         print(random_sample)
@@ -20,7 +21,7 @@ class mini_batches_code:
         return filtered_data, random_sample
     
     def data_matrix(self):
-        data = self.data
+        data, _ = torch.load(r"/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
         edge_entities = {
             'paper': 0,
             'author': 1,
@@ -46,13 +47,10 @@ class mini_batches_code:
                 if i != j and not torch.any((result_tensor[:, 1] == i) & (result_tensor[:, 2] == j)): 
                     non_edges.append(torch.tensor([0, i.item(), j.item(),edge_entities[self.edge_type[0]],edge_entities[self.edge_type[2]]]))
 
-        # Generate all unique pairs in random_sample (without itertools)
-        for i in range(len(random_sample)):
-            for j in range(i + 1, len(random_sample)):  # Ensures unique pairs
-                r, j = random_sample[i], random_sample[j]
-                if data['y_dict']['paper'][r] != data['y_dict']['paper'][j]:
-                    venues.append(torch.tensor([0, r, data['y_dict']['paper'][j],edge_entities[self.edge_type[0]],edge_entities['venue']]))
-                    venues.append(torch.tensor([0, j, data['y_dict']['paper'][r],edge_entities[self.edge_type[0]],edge_entities['venue']]))
+        for r, j in itertools.combinations(random_sample, 2):  # itertools generates all unique pairs
+            if data['y_dict']['paper'][r] != data['y_dict']['paper'][j]:
+                venues.append(torch.tensor([0, r, data['y_dict']['paper'][j],1,0]))
+                venues.append(torch.tensor([0, j, data['y_dict']['paper'][r],1,0]))
 
         # Convert lists to tensors only once to optimize memory usage
         non_edges_tensor = torch.stack(non_edges) if non_edges else torch.empty((0, 5), dtype=torch.long)
