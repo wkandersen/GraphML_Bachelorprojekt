@@ -3,22 +3,23 @@ import itertools
 import torch
 
 class mini_batches_code:
-    def __init__(self,data,sample_size,edge_type):
+    def __init__(self,data, unique_list, sample_size,edge_type):
         self.data = data
         self.sample_size = sample_size
         self.edge_type = edge_type
+        self.unique_list = unique_list
 
     def get_batch(self):
-        random.seed(99) 
-        torch.manual_seed(99)
-        list_pcp = list(self.data[0].unique().numpy())
+        # random.seed(99) 
+        # torch.manual_seed(99)
+        list_pcp = self.unique_list
         random_sample = random.sample(list_pcp, self.sample_size)
         print(random_sample)
         for value in random_sample:
             list_pcp.remove(value)
         mask = torch.isin(self.data[0], torch.tensor(random_sample))
         filtered_data = self.data[:,mask]
-        return filtered_data, random_sample
+        return filtered_data, random_sample, list_pcp
     
     def data_matrix(self):
         data, _ = torch.load(r"/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
@@ -30,7 +31,7 @@ class mini_batches_code:
             'venue': 4
         }
         # Get batch and initialize tensors
-        tensor, random_sample = self.get_batch()
+        tensor, random_sample, unique_list = self.get_batch()
 
         # Create result tensor from input batch
         result_tensor = torch.stack([torch.tensor([1, tensor[0, i], tensor[1, i],edge_entities[self.edge_type[0]],edge_entities[self.edge_type[2]]]) for i in range(tensor.shape[1])])
@@ -58,5 +59,9 @@ class mini_batches_code:
 
         # Merge all tensors
         data_matrix = torch.cat((result_tensor, non_edges_tensor, venues_tensor), dim=0)
-        return data_matrix
+        return data_matrix, unique_list
 
+
+# mini_b = mini_batches_code(paper_c_paper_train, list(paper_c_paper.unique().numpy()), 10,('paper', 'cites', 'paper'))
+# dm,l1 = mini_b.data_matrix()
+# mini_b1 = mini_batches_code(paper_c_paper_train, l1, 10,('paper', 'cites', 'paper'))
