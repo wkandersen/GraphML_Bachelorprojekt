@@ -14,29 +14,67 @@ class LossFunction:
         self.eps = eps
         self.use_regularization = use_regularization
 
-    def edge_probability(self, z_i, z_j):
-        """Compute the probability of an edge existing between two embeddings."""
-        dist = torch.norm(z_i - z_j) ** 2  # Squared Euclidean distance
+    # def edge_probability(self, z_i, z_j):
+    #     """Compute the probability of an edge existing between two embeddings."""
+    #     dist = torch.norm(z_i - z_j) ** 2  # Squared Euclidean distance
+    #     return 1 / (1 + torch.exp(-self.alpha + dist))  # Logistic function
+
+    # def link_loss(self, label, z_u, z_v):
+    #     """Compute the loss for a single edge."""
+    #     prob = self.edge_probability(z_u, z_v)
+    #     prob = torch.clamp(prob, self.eps, 1 - self.eps)  # Numerical stability
+
+    #     return label.float() * torch.log(prob) + (1 - label.float()) * torch.log(1 - prob)        
+
+    # def compute_loss(self, z, datamatrix_tensor):
+    #     """Compute the total loss for the dataset."""
+    #     sum_loss = sum(
+    #         self.link_loss(label, z[u_idx], z[v_idx])
+    #         for label, u_idx, v_idx in datamatrix_tensor
+    #     )
+
+    #     loss = -sum_loss / len(datamatrix_tensor)
+
+    #     if self.use_regularization:
+    #         regularization = -0.5 * torch.sum(z ** 2)
+    #         loss += regularization
+
+    #     return loss
+
+
+
+    def edge_probability(self, z_i, z_j, type_i, type_j):
+        """Compute the probability of an edge existing between two nodes, considering embeddings and types."""
+        # Convert types to one-hot encoded vectors
+        type_i = type_i.view(1, -1).float()
+        type_j = type_j.view(1, -1).float()
+        # Ensure types are float tensors for concatenation
+
+        # Combine the node embeddings and types (one-hot encoded)
+        combined_i = torch.cat((z_i, type_i), dim=-1)  # Concatenate embedding and type for node i
+        combined_j = torch.cat((z_j, type_j), dim=-1)  # Concatenate embedding and type for node j
+        
+        dist = torch.norm(combined_i - combined_j) ** 2  # Squared Euclidean distance
         return 1 / (1 + torch.exp(-self.alpha + dist))  # Logistic function
 
-    def link_loss(self, label, z_u, z_v):
-        """Compute the loss for a single edge."""
-        prob = self.edge_probability(z_u, z_v)
+    def link_loss(self, label, z_u, z_v, type_u, type_v):
+        """Compute the loss for a single edge, considering node types."""
+        prob = self.edge_probability(z_u, z_v, type_u, type_v)
         prob = torch.clamp(prob, self.eps, 1 - self.eps)  # Numerical stability
 
-        return label.float() * torch.log(prob) + (1 - label.float()) * torch.log(1 - prob)        
+        return label.float() * torch.log(prob) + (1 - label.float()) * torch.log(1 - prob)
 
-    def compute_loss(self, z, datamatrix_tensor):
-        """Compute the total loss for the dataset."""
+    def compute_loss(self, z, types, datamatrix_tensor):
+        """Compute the total loss for the dataset, considering node types."""
         sum_loss = sum(
-            self.link_loss(label, z[u_idx], z[v_idx])
+            self.link_loss(label, z[u_idx], z[v_idx], types[u_idx], types[v_idx])
             for label, u_idx, v_idx in datamatrix_tensor
         )
 
         loss = -sum_loss / len(datamatrix_tensor)
 
         if self.use_regularization:
-            regularization = -0.5 * torch.sum(z ** 2)
+            regularization = self.lam * torch.sum(z ** 2)
             loss += regularization
 
         return loss

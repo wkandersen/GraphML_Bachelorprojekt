@@ -22,13 +22,13 @@ class mini_batches_code:
         return filtered_data, random_sample, list_pcp
     
     def data_matrix(self):
-        data, _ = torch.load(r"/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
+        data, _ = torch.load(r"GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
         edge_entities = {
-            'paper': 0,
-            'author': 1,
-            'institution': 2,
-            'field_of_study': 3,
-            'venue': 4
+            'paper': torch.tensor([1,0,0,0,0]),
+            'author': torch.tensor([0,1,0,0,0]),
+            'institution': torch.tensor([0,0,1,0,0]),
+            'field_of_study': torch.tensor([0,0,0,1,0]),
+            'venue': torch.tensor([0,0,0,0,1])
         }
         # Get batch and initialize tensors
         tensor, random_sample, unique_list = self.get_batch()
