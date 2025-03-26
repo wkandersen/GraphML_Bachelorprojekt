@@ -24,11 +24,11 @@ class mini_batches_code:
     def data_matrix(self):
         data, _ = torch.load(r"GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
         edge_entities = {
-            'paper': torch.tensor([1,0,0,0,0]),
-            'author': torch.tensor([0,1,0,0,0]),
-            'institution': torch.tensor([0,0,1,0,0]),
-            'field_of_study': torch.tensor([0,0,0,1,0]),
-            'venue': torch.tensor([0,0,0,0,1])
+            'paper': 0,
+            'author': 1,
+            'institution': 2,
+            'field_of_study': 3,
+            'venue': 4,
         }
         # Get batch and initialize tensors
         tensor, random_sample, unique_list = self.get_batch()
@@ -50,8 +50,8 @@ class mini_batches_code:
 
         for r, j in itertools.combinations(random_sample, 2):  # itertools generates all unique pairs
             if data['y_dict']['paper'][r] != data['y_dict']['paper'][j]:
-                venues.append(torch.tensor([0, r, data['y_dict']['paper'][j],1,0]))
-                venues.append(torch.tensor([0, j, data['y_dict']['paper'][r],1,0]))
+                venues.append(torch.tensor([0, r, data['y_dict']['paper'][j],edge_entities['paper'],edge_entities['venue']]))
+                venues.append(torch.tensor([0, j, data['y_dict']['paper'][r],edge_entities['paper'],edge_entities['venue']]))
 
         # Convert lists to tensors only once to optimize memory usage
         non_edges_tensor = torch.stack(non_edges) if non_edges else torch.empty((0, 5), dtype=torch.long)
