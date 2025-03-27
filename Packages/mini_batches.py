@@ -10,8 +10,8 @@ class mini_batches_code:
         self.unique_list = unique_list
 
     def get_batch(self):
-        # random.seed(99) 
-        # torch.manual_seed(99)
+        random.seed(99) 
+        torch.manual_seed(99)
         list_pcp = self.unique_list
         random_sample = random.sample(list_pcp, self.sample_size)
         print(random_sample)
@@ -22,7 +22,7 @@ class mini_batches_code:
         return filtered_data, random_sample, list_pcp
     
     def data_matrix(self):
-        data, _ = torch.load(r"GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
+        data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
         edge_entities = {
             'paper': 0,
             'author': 1,
@@ -60,6 +60,35 @@ class mini_batches_code:
         # Merge all tensors
         data_matrix = torch.cat((result_tensor, non_edges_tensor, venues_tensor), dim=0)
         return data_matrix, unique_list
+    
+    def node_mapping(self):
+
+        datamatrix_tensor,ul = self.data_matrix()
+
+        lm1 = torch.unique(torch.stack((datamatrix_tensor[:, 1], datamatrix_tensor[:, 3]), dim=1), dim=0)
+        lm2 = torch.unique(torch.stack((datamatrix_tensor[:, 2], datamatrix_tensor[:, 4]), dim=1), dim=0)
+
+        unique_global_node_ids = torch.unique(torch.cat([lm1, lm2], dim=0), dim=0)
+
+        # Step 2: Create a mapping from global node IDs to local node indices
+        node_mapping = {(global_id.item(), type_id.item()): idx 
+                            for idx, (global_id, type_id) in enumerate(unique_global_node_ids)}
+
+        # Step 3: Remap the indices in the datamatrix_tensor using the node_mapping
+        # We are remapping columns 1 and 2 in the datamatrix (i.e., the source and destination node indices)
+        remapped_datamatrix_tensor = datamatrix_tensor.clone()  # Clone the tensor to avoid modifying the original
+        # Extract the global_id and type_id for remapping
+        remapped_datamatrix_tensor[:, 1] = torch.tensor([
+            node_mapping[(global_id.item(), type_id.item())]  
+            for global_id, type_id in zip(datamatrix_tensor[:, 1], datamatrix_tensor[:, 3])  # Use both columns
+        ])
+
+        remapped_datamatrix_tensor[:, 2] = torch.tensor([
+            node_mapping[(global_id.item(), type_id.item())]  
+            for global_id, type_id in zip(datamatrix_tensor[:, 2], datamatrix_tensor[:, 4])  # Use both columns
+        ])
+
+        return datamatrix_tensor, ul, remapped_datamatrix_tensor
 
 
 # mini_b = mini_batches_code(paper_c_paper_train, list(paper_c_paper.unique().numpy()), 10,('paper', 'cites', 'paper'))
