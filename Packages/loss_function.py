@@ -37,7 +37,7 @@ class LossFunction:
         loss = -sum_loss / len(datamatrix_tensor)
 
         if self.use_regularization:
-            regularization = self.lam * torch.sum(z ** 2)
+            regularization = -self.lam * torch.sum(z ** 2)
             loss += regularization
 
         return loss
@@ -46,8 +46,8 @@ class LossFunction:
 
     # def edge_probability(self, z_i, z_j, type_i, type_j):
     #     """Compute the probability of an edge existing between two nodes, considering embeddings and types."""
-    #     type_i = (type_i.view(1, -1).float())
-    #     type_j = (type_j.view(1, -1).float())
+    #     type_i = (type_i.view(1, -1).float())*0
+    #     type_j = (type_j.view(1, -1).float())*0
 
     #     # Combine the node embeddings and types
     #     z_i = z_i.view(1, -1).float()  # Ensure z_i is a float tensor

@@ -10,8 +10,8 @@ class mini_batches_code:
         self.unique_list = unique_list
 
     def get_batch(self):
-        random.seed(99) 
-        torch.manual_seed(99)
+        # random.seed(99) 
+        # torch.manual_seed(99)
         list_pcp = self.unique_list
         random_sample = random.sample(list_pcp, self.sample_size)
         print(random_sample)
