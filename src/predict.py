@@ -5,6 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.embed_batches import venue_dict
 from src.embed_valid_sample import new_embedding
+from Packages.data_divide import venue_value
 
 alpha = 0.001
 logi_f = []
@@ -27,6 +28,14 @@ high_prob_idx = torch.argmax(softma).item()
 # Get the corresponding node ID and its softmax probability
 predicted_node_id = node_ids[high_prob_idx]
 highest_prob_value = softma[high_prob_idx].item()
+
+# Accuarcy calculation
+correct_predictions = 0
+for i in range(len(venue_value)):
+    if venue_value[i] == predicted_node_id:
+        correct_predictions += 1
+accuracy = correct_predictions / len(venue_value) * 100
+print(f"Accuracy: {accuracy:.2f}%")
 
 # Print the results
 print(f"Predicted Node ID: {predicted_node_id}")
