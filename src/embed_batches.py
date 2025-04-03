@@ -27,7 +27,7 @@ for i in range(num_iterations):
 
     # Generate mini-batches
     mini_b = mini_batches_code(paper_c_paper_train, l_prev, 5, ('paper', 'cites', 'paper'))
-    dm, l_next, remapped_datamatrix_tensor = mini_b.node_mapping()
+    dm, l_next, remapped_datamatrix_tensor,random_sample = mini_b.node_mapping()
 
     # Train embeddings and update dictionaries **in place**
     N_emb = NodeEmbeddingTrainer(

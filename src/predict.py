@@ -4,7 +4,8 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.embed_batches import venue_dict
-from src.embed_valid_sample import new_embedding
+from src.embed_valid_sample import new_embedding, random_sample
+data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
 alpha = 0.001
 logi_f = []
@@ -30,4 +31,5 @@ highest_prob_value = softma[high_prob_idx].item()
 
 # Print the results
 print(f"Predicted Node ID: {predicted_node_id}")
+print(f"True Node ID: {int(data['y_dict']['paper'][random_sample].numpy())}" )
 print(f"Highest Softmax Probability: {highest_prob_value}")
