@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Packages.mini_batches import mini_batches_code
 from Packages.embed_trainer import NodeEmbeddingTrainer
-from Packages.data_divide import paper_c_paper, paper_c_paper_train
+from Packages.data_divide import paper_c_paper_train
 # Load initial embeddings
 embed_venue = torch.load("dataset/ogbn_mag/processed/venue_embeddings.pt")
 embed_paper = torch.load("dataset/ogbn_mag/processed/paper_embeddings.pt")
@@ -17,7 +17,7 @@ embed_paper = torch.load("dataset/ogbn_mag/processed/paper_embeddings.pt")
 # Initialize dictionaries to store embeddings
 paper_dict = copy.deepcopy(embed_paper)  # Ensure we don't modify the original embeddings
 venue_dict = copy.deepcopy(embed_venue)
-l_prev = list(paper_c_paper.unique().numpy())  # Initial list of nodes
+l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
 
 # Number of iterations (adjust as needed)
 num_iterations = 1 
