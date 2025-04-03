@@ -1,5 +1,8 @@
 import pandas as pd
 import torch
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 def process_edges(data, edge_type, nums_train, nums_valid, nums_test, mask_position):
     edge_data = data.edge_index_dict[edge_type]
@@ -30,10 +33,10 @@ def process_edges(data, edge_type, nums_train, nums_valid, nums_test, mask_posit
 
     return edge_train, edge_valid, edge_test, edge_data
 
-data_train = pd.read_csv('/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/split/time/paper/train.csv.gz', compression='gzip',header = None)
-data_valid = pd.read_csv('/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/split/time/paper/valid.csv.gz', compression='gzip',header = None)
-data_test = pd.read_csv('/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/split/time/paper/test.csv.gz', compression='gzip',header = None)
-data, _ = torch.load(r"/mnt/c/Users/Bruger/Desktop/Bachelor/GraphML_Bachelorprojekt/dataset/ogbn_mag/processed/geometric_data_processed.pt")
+data_train = pd.read_csv(r'dataset/ogbn_mag/split/time/paper/train.csv.gz', compression='gzip',header = None)
+data_valid = pd.read_csv(r'dataset/ogbn_mag/split/time/paper/valid.csv.gz', compression='gzip',header = None)
+data_test = pd.read_csv(r'dataset/ogbn_mag/split/time/paper/test.csv.gz', compression='gzip',header = None)
+data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
 nums_valid = torch.tensor(data_valid[0])
 nums_test = torch.tensor(data_test[0])
@@ -54,3 +57,7 @@ nums_train_author = torch.tensor(author_w_paper_train[0].unique())
 
 author_a_institution_train, author_a_institution_valid, author_a_institution_test, author_a_institution = process_edges(
     data, ('author', 'affiliated_with', 'institution'), nums_train_author, nums_valid_author, nums_test_author,mask_position='source')
+
+venue_value = {}
+for idx, value in enumerate(data['y_dict']['paper']):
+    venue_value[idx] = value
