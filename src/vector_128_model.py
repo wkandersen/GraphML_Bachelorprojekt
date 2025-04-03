@@ -36,7 +36,7 @@ def prep_data():
     X_valid, y_valid = X[nums_valid], y[nums_valid]
     X_test, y_test = X[nums_test], y[nums_test]
 
-    return X_train, y_train, X_valid, y_valid, X_test, y_test, y
+    return X_train, y_train, X_valid, y_valid, X_test, y_test
 
 
 
@@ -63,7 +63,7 @@ class VenueDataModule(pl.LightningDataModule):
 # PyTorch Lightning Model
 # --------------------------------
 class VenueClassifier(pl.LightningModule):
-    def __init__(self, input_dim=128, num_classes=len(torch.unique(y)), lr=0.001):
+    def __init__(self, input_dim=128, num_classes=349, lr=0.001):
         super().__init__()
         self.lr = lr
         self.model = nn.Sequential(
