@@ -5,11 +5,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Packages.mini_batches import mini_batches_code
 from Packages.loss_function import LossFunction
 
-emb_matrix = torch.load("dataset/ogbn_mag/processed/emb_matrix.pt")
+emb_matrix = torch.load("dataset/ogbn_mag/processed/hpc/emb_matrix.pt")
 paper_c_paper_valid = torch.load("dataset/ogbn_mag/processed/paper_c_paper_valid.pt")
 
 # Number of iterations (adjust as needed)
-num_iterations = 2
+num_iterations = len(paper_c_paper_valid)-1
 
 valid_dict = {}
 
@@ -31,7 +31,7 @@ for i in range(num_iterations):
 
     new_optimizer = torch.optim.Adam(new_embedding.parameters(), lr=0.01)
 
-    num_epochs = 20
+    num_epochs = 10
 
         # Training loop
     for epoch in range(num_epochs):
@@ -54,6 +54,8 @@ for i in range(num_iterations):
     l_prev = l_next
 
     valid_dict[random_sample[0]] = new_embedding.weight
+
+torch.save(valid_dict, "dataset/ogbn_mag/processed/hpc/valid_dict.pt")
 
 print(valid_dict)
         

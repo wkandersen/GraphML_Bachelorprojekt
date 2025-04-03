@@ -3,43 +3,64 @@ import torch.nn.functional as F
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from src.embed_batches import venue_dict
-from src.embed_valid_sample import new_embedding, random_sample
-data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
-from src.embed_valid_sample import new_embedding
-from Packages.data_divide import venue_value
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix, classification_report
 
-alpha = 0.001
-logi_f = []
+valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict.pt")
+venue_dict = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict.pt")
+venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt")
+predictions = {}
 
-for i in range(len(venue_dict)):
-        dist = torch.norm(new_embedding.weight - venue_dict[i])**2  # Euclidean distance
-        logi = 1 / (1 + torch.exp(alpha + dist))  # Logistic function
-        logi_f.append((logi.item(), i))  # Store tuple (probability, node ID)
+for x, y in valid_dict.items():
+        alpha = 0.001
+        logi_f = []
 
-# Separate values for softmax computation
-logits, node_ids = zip(*logi_f)  # Unzips into two lists
+        for i in range(len(venue_dict)):
+                dist = torch.norm(y - venue_dict[i])**2  # Euclidean distance
+                logi = 1 / (1 + torch.exp(alpha + dist))  # Logistic function
+                logi_f.append((logi.item(), i))  # Store tuple (probability, node ID)
 
-# Convert logits to a tensor and apply softmax
-logi_f_tensor = torch.tensor(logits)
-softma = F.softmax(logi_f_tensor, dim=0)
+        # Separate values for softmax computation
+        logits, node_ids = zip(*logi_f)  # Unzips into two lists
 
-# Get the index of the highest probability
-high_prob_idx = torch.argmax(softma).item()
+        # Convert logits to a tensor and apply softmax
+        logi_f_tensor = torch.tensor(logits)
+        softma = F.softmax(logi_f_tensor, dim=0)
 
-# Get the corresponding node ID and its softmax probability
-predicted_node_id = node_ids[high_prob_idx]
-highest_prob_value = softma[high_prob_idx].item()
+        # Get the index of the highest probability
+        high_prob_idx = torch.argmax(softma).item()
+
+        # Get the corresponding node ID and its softmax probability
+        predicted_node_id = node_ids[high_prob_idx]
+        highest_prob_value = softma[high_prob_idx].item()
+        predictions[x] = (int(venue_value[x].numpy()),predicted_node_id)
 
 # Accuarcy calculation
 correct_predictions = 0
-for i in range(len(venue_value)):
-    if venue_value[i] == predicted_node_id:
+for i in predictions:
+    if predictions[i][0] == predictions[i][1]:
         correct_predictions += 1
-accuracy = correct_predictions / len(venue_value) * 100
+accuracy = correct_predictions / len(predictions) * 100
 print(f"Accuracy: {accuracy:.2f}%")
 
-# Print the results
-print(f"Predicted Node ID: {predicted_node_id}")
-print(f"True Node ID: {int(data['y_dict']['paper'][random_sample].numpy())}" )
-print(f"Highest Softmax Probability: {highest_prob_value}")
+true_labels = [value[0] for value in predictions.values()]
+predicted_labels = [value[1] for value in predictions.values()]
+
+# Get all unique labels (ensures matrix includes all possible classes)
+all_labels = sorted(set(true_labels) | set(predicted_labels))  # Union of true & predicted labels
+
+# Compute confusion matrix with explicit labels
+conf_matrix = confusion_matrix(true_labels, predicted_labels, labels=all_labels)
+
+# Print classification report
+print(classification_report(true_labels, predicted_labels, labels=all_labels))
+
+# Plot confusion matrix
+plt.figure(figsize=(10, 7))
+sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=all_labels, yticklabels=all_labels)
+plt.xlabel("Predicted Label")
+plt.ylabel("True Label")
+plt.title("Confusion Matrix")
+plt.savefig("dataset/ogbn_mag/processed/hpc/confusion_matrix.png") 
+plt.close()
