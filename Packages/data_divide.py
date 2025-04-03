@@ -61,3 +61,5 @@ author_a_institution_train, author_a_institution_valid, author_a_institution_tes
 venue_value = {}
 for idx, value in enumerate(data['y_dict']['paper']):
     venue_value[idx] = value
+
+torch.save(venue_value, "dataset/ogbn_mag/processed/venue_value.pt")

@@ -12,6 +12,6 @@
 #BSUB -u williamkirkandersen@gmail.com
 
 
-
-
-
+src/embed_batches.py
+src/embed_valid_sample.py
+src/predict.py

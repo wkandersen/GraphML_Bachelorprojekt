@@ -59,11 +59,11 @@ class mini_batches_code:
 
         # Merge all tensors
         data_matrix = torch.cat((result_tensor, non_edges_tensor, venues_tensor), dim=0)
-        return data_matrix, unique_list
+        return data_matrix, unique_list, random_sample
     
     def node_mapping(self):
 
-        datamatrix_tensor,ul = self.data_matrix()
+        datamatrix_tensor,ul,random_sample = self.data_matrix()
 
         lm1 = torch.unique(torch.stack((datamatrix_tensor[:, 1], datamatrix_tensor[:, 3]), dim=1), dim=0)
         lm2 = torch.unique(torch.stack((datamatrix_tensor[:, 2], datamatrix_tensor[:, 4]), dim=1), dim=0)
@@ -88,7 +88,7 @@ class mini_batches_code:
             for global_id, type_id in zip(datamatrix_tensor[:, 2], datamatrix_tensor[:, 4])  # Use both columns
         ])
 
-        return datamatrix_tensor, ul, remapped_datamatrix_tensor
+        return datamatrix_tensor, ul, remapped_datamatrix_tensor, random_sample
 
 
 # mini_b = mini_batches_code(paper_c_paper_train, list(paper_c_paper.unique().numpy()), 10,('paper', 'cites', 'paper'))
