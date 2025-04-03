@@ -12,6 +12,10 @@
 #BSUB -u williamkirkandersen@gmail.com
 
 
-src/embed_batches.py
-src/embed_valid_sample.py
-src/predict.py
+eval "$(conda shell.bash hook)"
+
+conda activate Bachelorprojekt
+
+python src/embed_batches.py
+python src/embed_valid_sample.py
+python src/predict.py
