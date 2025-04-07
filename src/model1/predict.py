@@ -3,11 +3,13 @@ import torch.nn.functional as F
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
 
-valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict.pt")
+valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict.pt") 
 venue_dict = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict.pt")
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt")
 predictions = {}

@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Packages.loss_function import LossFunction
 
 class NodeEmbeddingTrainer:
-    def __init__(self, dm, remapped_datamatrix_tensor, paper_dict, venue_dict, embedding_dim=2, num_epochs=10, lr=0.01, alpha=3):
+    def __init__(self, dm, remapped_datamatrix_tensor, paper_dict, venue_dict, embedding_dim=2, num_epochs=10, lr=0.01, alpha=1,eps=1e-10,lam=0.01):
         # Initialize input data, parameters, and setup
         self.dm = dm
         self.remapped_datamatrix_tensor = remapped_datamatrix_tensor
@@ -15,8 +15,10 @@ class NodeEmbeddingTrainer:
         self.venue_dict = venue_dict
         self.embedding_dim = embedding_dim
         self.num_epochs = num_epochs
-        self.alpha = alpha
         self.lr = lr
+        self.alpha = alpha
+        self.lam = lam
+        self.eps = eps
 
         # Process data
         self.dm1 = dm[dm[:, 4] != 4]
@@ -35,7 +37,7 @@ class NodeEmbeddingTrainer:
         self.venue_optimizer = torch.optim.Adam(self.venuenode_embeddings.parameters(), lr=self.lr)
 
         # Loss function (assumed to be defined elsewhere)
-        self.loss_function = LossFunction(alpha=1.0, eps=1e-10, use_regularization=True)
+        self.loss_function = LossFunction(alpha=self.alpha, eps=self.eps, use_regularization=True, lam=self.lam)
 
     def train(self):
         venue_dict = self.venue_dict
@@ -62,12 +64,13 @@ class NodeEmbeddingTrainer:
         print(self.specific_venuenode_indices)
 
         for idx, node in enumerate(self.specific_papernode_indices):
-            paper_dict[int(node)] = self.papernode_embeddings.weight[idx]
+            paper_dict[int(node)] = self.papernode_embeddings.weight[idx].detach().cpu().clone()
+
 
         for idx, node in enumerate(self.specific_venuenode_indices):
-            venue_dict[int(node)] = self.venuenode_embeddings.weight[idx]
+            venue_dict[int(node)] = self.venuenode_embeddings.weight[idx].detach().cpu().clone()
             
-        return paper_dict, venue_dict
+        return paper_dict, venue_dict, loss
 
 
 # # Example usage:
