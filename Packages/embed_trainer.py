@@ -70,7 +70,7 @@ class NodeEmbeddingTrainer:
         for idx, node in enumerate(self.specific_venuenode_indices):
             venue_dict[int(node)] = self.venuenode_embeddings.weight[idx].detach().cpu().clone()
             
-        return paper_dict, venue_dict, loss
+        return paper_dict, venue_dict, loss.detach().item()
 
 
 # # Example usage:
