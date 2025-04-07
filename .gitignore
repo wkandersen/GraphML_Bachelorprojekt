@@ -13,6 +13,8 @@ HPC_outputs
 *.err
 *.out
 
+lightning_logs/
+
 # Distribution / packaging
 .Python
 build/
