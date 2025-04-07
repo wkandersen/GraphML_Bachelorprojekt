@@ -1,7 +1,7 @@
 #!/bin/bash
 #BSUB -J Graph_ML_Bachelor_vector
-#BSUB -o ML_bachelor_vector_%J.out
-#BSUB -e ML_bachelor_vector_%J.err
+#BSUB -o HPC_outputs/ML_bachelor_vector_%J.out
+#BSUB -e HPC_outputs/ML_bachelor_vector_%J.err
 #BSUB -q gpua10
 #BSUB -n 4
 #BSUB -R "span[hosts=1]"

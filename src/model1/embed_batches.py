@@ -23,25 +23,21 @@ venue_dict = {k: v.clone() for k, v in embed_venue.items()}
 
 l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
 
-# Number of iterations (adjust as needed)
-num_iterations =  1 # we need to be able to look at the complete dataset
+
 
 # hyperparameters
-batch_size = 3
-num_epochs = 20
+batch_size = 100
+num_epochs = 10
 lr = 0.01
 alpha = 1
 lam = 0.01
+num_iterations =  int(len(paper_dict)/batch_size)-1 # we need to be able to look at the complete dataset
 
 for i in range(num_iterations):
     print(f"Iteration {i+1}")
 
     # Generate mini-batches
-<<<<<<< HEAD
-    mini_b = mini_batches_code(paper_c_paper_train, l_prev, 100, ('paper', 'cites', 'paper'))
-=======
     mini_b = mini_batches_code(paper_c_paper_train, l_prev, batch_size, ('paper', 'cites', 'paper'))
->>>>>>> 2e6d64f834288d99bbf79bed7f889b65ad95b306
     dm, l_next, remapped_datamatrix_tensor,random_sample = mini_b.node_mapping()
 
     # Move data to GPU
