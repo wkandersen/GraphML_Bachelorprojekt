@@ -3,10 +3,13 @@ import copy
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from Packages.mini_batches import mini_batches_code
 from Packages.embed_trainer import NodeEmbeddingTrainer
 from Packages.data_divide import paper_c_paper_train
 
+print("starting")
 # Load initial embeddings
 embed_venue = torch.load("dataset/ogbn_mag/processed/venue_embeddings.pt")
 embed_paper = torch.load("dataset/ogbn_mag/processed/paper_embeddings.pt")

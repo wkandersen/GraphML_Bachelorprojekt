@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import pytorch_lightning as pl
 import torch.nn as nn
 import torch.optim as optim
+
 # Set working directory
 
 def prep_data():
@@ -36,7 +37,7 @@ def prep_data():
     X_valid, y_valid = X[nums_valid], y[nums_valid]
     X_test, y_test = X[nums_test], y[nums_test]
 
-    return X_train, y_train, X_valid, y_valid, X_test, y_test
+    return X_train, y_train, X_valid, y_valid, X_test, y_test, y
 
 
 
@@ -68,16 +69,19 @@ class VenueClassifier(pl.LightningModule):
         self.lr = lr
         self.model = nn.Sequential(
             nn.Linear(input_dim, 2048),
+            nn.BatchNorm1d(2048),  # BatchNorm layer
             nn.ReLU(),
             nn.Dropout(0.3),
             nn.Linear(2048, 1024),
+            nn.BatchNorm1d(1024),  # BatchNorm layer
             nn.ReLU(),
             nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),  # BatchNorm layer
             nn.ReLU(),
             nn.Linear(512, num_classes)
         )
-        self.criterion = nn.CrossEntropyLoss()
-
+        self.criterion = nn.CrossEntropyLoss(weight="balanced")
+        
     def forward(self, x):
         return self.model(x)
 
@@ -107,4 +111,4 @@ class VenueClassifier(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(), lr=self.lr)
+        return optim.AdamW(self.parameters(), lr=self.lr, weight_decay=1e-4)
