@@ -3,13 +3,17 @@ import torch.nn.functional as F
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
 
-valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict.pt")
-venue_dict = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict.pt")
-venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
+valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict.pt", map_location=device)
+venue_dict = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict.pt", map_location=device)
+venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device)
 predictions = {}
 
 for x, y in valid_dict.items():
@@ -25,7 +29,7 @@ for x, y in valid_dict.items():
         logits, node_ids = zip(*logi_f)  # Unzips into two lists
 
         # Convert logits to a tensor and apply softmax
-        logi_f_tensor = torch.tensor(logits)
+        logi_f_tensor = torch.tensor(logits).to(device)
         softma = F.softmax(logi_f_tensor, dim=0)
 
         # Get the index of the highest probability
