@@ -4,16 +4,26 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2e6d64f834288d99bbf79bed7f889b65ad95b306
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
 
+<<<<<<< HEAD
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict.pt", map_location=device)
 venue_dict = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict.pt", map_location=device)
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device)
+=======
+valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict.pt") 
+venue_dict = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict.pt")
+venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt")
+>>>>>>> 2e6d64f834288d99bbf79bed7f889b65ad95b306
 predictions = {}
 
 for x, y in valid_dict.items():

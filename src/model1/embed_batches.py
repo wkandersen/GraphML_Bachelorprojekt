@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Packages.mini_batches import mini_batches_code
 from Packages.embed_trainer import NodeEmbeddingTrainer
 from Packages.data_divide import paper_c_paper_train
+import gc
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -23,13 +24,24 @@ venue_dict = {k: v.clone() for k, v in embed_venue.items()}
 l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
 
 # Number of iterations (adjust as needed)
-num_iterations =  622
+num_iterations =  1 # we need to be able to look at the complete dataset
+
+# hyperparameters
+batch_size = 3
+num_epochs = 20
+lr = 0.01
+alpha = 1
+lam = 0.01
 
 for i in range(num_iterations):
     print(f"Iteration {i+1}")
 
     # Generate mini-batches
+<<<<<<< HEAD
     mini_b = mini_batches_code(paper_c_paper_train, l_prev, 100, ('paper', 'cites', 'paper'))
+=======
+    mini_b = mini_batches_code(paper_c_paper_train, l_prev, batch_size, ('paper', 'cites', 'paper'))
+>>>>>>> 2e6d64f834288d99bbf79bed7f889b65ad95b306
     dm, l_next, remapped_datamatrix_tensor,random_sample = mini_b.node_mapping()
 
     # Move data to GPU
@@ -41,12 +53,22 @@ for i in range(num_iterations):
         dm=dm,
         remapped_datamatrix_tensor=remapped_datamatrix_tensor,
         paper_dict=paper_dict,  # Pass reference (no copy)
-        venue_dict=venue_dict
+        venue_dict=venue_dict,
+        num_epochs=num_epochs,
+        lr=lr,
+        alpha=alpha,
+        lam=lam
     )
-    paper_dict, venue_dict = N_emb.train()  # Directly update original dictionaries
+    paper_dict, venue_dict,loss = N_emb.train()  # Directly update original dictionaries
 
     # Update node list for the next iteration
     l_prev = l_next
+
+    # Cleanup
+    if (i + 1) % 5 == 0:  # Or do it every iteration if memory is super tight
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache()
 
 for key in paper_dict:
     paper_dict[key] = paper_dict[key].detach().clone().cpu()

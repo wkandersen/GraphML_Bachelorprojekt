@@ -5,15 +5,21 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Packages.mini_batches import mini_batches_code
 from Packages.loss_function import LossFunction
+import gc
 
+<<<<<<< HEAD
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 emb_matrix = torch.load("dataset/ogbn_mag/processed/hpc/emb_matrix.pt", map_location=device)
 paper_c_paper_valid = torch.load("dataset/ogbn_mag/processed/paper_c_paper_valid.pt", map_location=device)
+=======
+emb_matrix = torch.load("dataset/ogbn_mag/processed/hpc/emb_matrix.pt")
+paper_c_paper_valid = torch.load("HPC_Scripts/paper_c_paper_valid.pt")
+>>>>>>> 2e6d64f834288d99bbf79bed7f889b65ad95b306
 
 # Number of iterations (adjust as needed)
-num_iterations = len(paper_c_paper_valid)-1
+num_iterations = 3 # len(paper_c_paper_valid)-1
 
 valid_dict = {}
 
@@ -61,9 +67,18 @@ for i in range(num_iterations):
     # Update node list for the next iteration
     l_prev = l_next
 
+<<<<<<< HEAD
     valid_dict[random_sample[0]] = new_embedding.weight.cpu()
+=======
+    valid_dict[random_sample[0]] = valid_dict[random_sample[0]] = new_embedding.weight.detach().cpu().clone()
+
+    # Cleanup
+    if (i + 1) % 10 == 0:
+        gc.collect()
+        torch.cuda.empty_cache()
+>>>>>>> 2e6d64f834288d99bbf79bed7f889b65ad95b306
 
 torch.save(valid_dict, "dataset/ogbn_mag/processed/hpc/valid_dict.pt")
 
-print(valid_dict)
+print('embed_valid done')
         
