@@ -52,13 +52,13 @@ class VenueDataModule(pl.LightningDataModule):
         self.test_dataset = TensorDataset(X_test, y_test)
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=15)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=8)
 
     def val_dataloader(self):
-        return DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=False, num_workers=15)
+        return DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=False, num_workers=8)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=15)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=8)
 
 # --------------------------------
 # PyTorch Lightning Model
