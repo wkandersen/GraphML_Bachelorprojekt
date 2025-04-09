@@ -9,6 +9,9 @@ from Packages.mini_batches import mini_batches_code
 from Packages.embed_trainer import NodeEmbeddingTrainer
 from Packages.data_divide import paper_c_paper_train
 import gc
+import wandb
+
+wandb.login()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -24,16 +27,25 @@ venue_dict = {k: v.clone() for k, v in embed_venue.items()}
 
 l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
 
-
-
 # hyperparameters
-batch_size = 100
+batch_size = 3
 num_epochs = 10
 lr = 0.01
-alpha = 1
+alpha = 0.5
 lam = 0.01
-num_iterations =  int(len(paper_dict)/batch_size)-1 # we need to be able to look at the complete dataset
+num_iterations =  5 # we need to be able to look at the complete dataset
 
+run = wandb.init(
+    project="Bachelor_projekt",
+    name="run_${now:%Y-%m-%d %H:%M:%S}",
+    config={
+        "batch_size": batch_size,
+        "num_epochs": num_epochs,
+        "lr": lr,
+        "alpha": alpha,
+        "lam": lam
+    },
+)
 for i in range(num_iterations):
     print(f"Iteration {i+1}")
 
@@ -57,6 +69,8 @@ for i in range(num_iterations):
         lam=lam
     )
     paper_dict, venue_dict,loss = N_emb.train()  # Directly update original dictionaries
+
+    wandb.log({"loss": loss, "iteration": i+1})
 
     # Update node list for the next iteration
     l_prev = l_next
