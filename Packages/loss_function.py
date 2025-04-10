@@ -37,7 +37,7 @@ class LossFunction:
         loss = -sum_loss / len(datamatrix_tensor)
 
         if self.use_regularization:
-            regularization = -self.lam * torch.sum(z ** 2)
+            regularization = self.lam * torch.sum(z ** 2)
             loss += regularization
 
         return loss
