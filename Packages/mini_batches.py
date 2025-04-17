@@ -3,11 +3,12 @@ import itertools
 import torch
 
 class mini_batches_code:
-    def __init__(self,data, unique_list, sample_size,edge_type):
+    def __init__(self,data, unique_list, sample_size,edge_type,full_data):
         self.data = data
         self.sample_size = sample_size
         self.edge_type = edge_type
         self.unique_list = unique_list
+        self.full_data = full_data
 
     def get_batch(self):
         # random.seed(99) 
@@ -22,7 +23,7 @@ class mini_batches_code:
         return filtered_data, random_sample, list_pcp
     
     def data_matrix(self):
-        data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
+        data = self.full_data
         edge_entities = {
             'paper': 0,
             'author': 1,
