@@ -59,7 +59,7 @@ class NodeEmbeddingTrainer:
             self.venue_optimizer.step()
 
             # log to wandb
-            # wandb.log({"epoch_loss": loss.item(), "epoch": epoch})
+            wandb.log({"epoch_loss": loss.item(), "epoch": epoch})
 
             # Print loss every 10 epochs
             if epoch % 10 == 0:

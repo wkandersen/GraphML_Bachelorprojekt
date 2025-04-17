@@ -90,6 +90,7 @@ for i in range(num_iterations):
     if (i + 1) % save_every_it == 0:
         iter_id = i + 1
 
+        os.makedirs("checkpoint", exist_ok=True)
         # Define filenames with iteration
         trainer_path = f"checkpoint/trainer_iter{iter_id}.pt"
         paper_path = f"checkpoint/paper_dict_iter{iter_id}.pt"
