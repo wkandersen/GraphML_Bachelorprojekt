@@ -91,6 +91,7 @@ class LossFunction:
 
         # Optionally add regularization
         if self.use_regularization:
-            loss += self.lam * torch.sum(z ** 2)
+            regularization = self.lam * torch.sum(z ** 2)
+            loss += regularization
 
         return loss

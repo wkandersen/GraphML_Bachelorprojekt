@@ -5,6 +5,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Packages.loss_function import LossFunction
+import wandb
 
 class NodeEmbeddingTrainer:
     def __init__(self, dm, remapped_datamatrix_tensor, paper_dict, venue_dict, embedding_dim=2, num_epochs=10, lr=0.01, alpha=1,eps=1e-10,lam=0.01):
@@ -57,6 +58,9 @@ class NodeEmbeddingTrainer:
             self.paper_optimizer.step()
             self.venue_optimizer.step()
 
+            # log to wandb
+            # wandb.log({"epoch_loss": loss.item(), "epoch": epoch})
+
             # Print loss every 10 epochs
             if epoch % 10 == 0:
                 print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
@@ -70,7 +74,31 @@ class NodeEmbeddingTrainer:
         for idx, node in enumerate(self.specific_venuenode_indices):
             venue_dict[int(node)] = self.venuenode_embeddings.weight[idx].detach().cpu().clone()
             
-        return paper_dict, venue_dict, loss
+        return paper_dict, venue_dict, loss.detach().item()
+    
+    def save_checkpoint(self, path):
+        checkpoint = {
+            'papernode_embeddings': self.papernode_embeddings.state_dict(),
+            'venuenode_embeddings': self.venuenode_embeddings.state_dict(),
+            'paper_optimizer': self.paper_optimizer.state_dict(),
+            'venue_optimizer': self.venue_optimizer.state_dict(),
+            'specific_papernode_indices': self.specific_papernode_indices,
+            'specific_venuenode_indices': self.specific_venuenode_indices,
+        }
+        torch.save(checkpoint, path)
+
+    @staticmethod
+    def load_checkpoint(path, *args, **kwargs):
+        obj = NodeEmbeddingTrainer(*args, **kwargs)
+        checkpoint = torch.load(path)
+        obj.papernode_embeddings.load_state_dict(checkpoint['papernode_embeddings'])
+        obj.venuenode_embeddings.load_state_dict(checkpoint['venuenode_embeddings'])
+        obj.paper_optimizer.load_state_dict(checkpoint['paper_optimizer'])
+        obj.venue_optimizer.load_state_dict(checkpoint['venue_optimizer'])
+        obj.specific_papernode_indices = checkpoint['specific_papernode_indices']
+        obj.specific_venuenode_indices = checkpoint['specific_venuenode_indices']
+        return obj
+
 
 
 # # Example usage:

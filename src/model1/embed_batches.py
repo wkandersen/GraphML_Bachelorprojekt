@@ -97,7 +97,10 @@ from Packages.mini_batches import mini_batches_code
 from Packages.embed_trainer import LossFunction  # Assuming this is defined here
 from Packages.data_divide import paper_c_paper_train
 import gc
-import torch.nn as nn
+import wandb
+from datetime import datetime
+
+wandb.login()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -106,10 +109,9 @@ print(f"Amount of devices: {torch.cuda.device_count()}")
 print("Starting")
 
 # Load initial embeddings
-embed_venue = torch.load("dataset/ogbn_mag/processed/venue_embeddings.pt", map_location=device,mmap=True)
-embed_paper = torch.load("dataset/ogbn_mag/processed/paper_embeddings.pt", map_location=device,mmap=True)
+embed_venue = torch.load("dataset/ogbn_mag/processed/venue_embeddings.pt", map_location=device)
+embed_paper = torch.load("dataset/ogbn_mag/processed/paper_embeddings.pt", map_location=device)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
-
 
 # Initialize dictionaries to store embeddings
 paper_dict = {k: v.clone() for k, v in embed_paper.items()}
@@ -117,52 +119,35 @@ venue_dict = {k: v.clone() for k, v in embed_venue.items()}
 
 l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
 
-# Hyperparameters
-batch_size = 250
-num_epochs = 10
+# hyperparameters
+batch_size = 3
+num_epochs = 4
 lr = 0.01
-alpha = 1
+alpha = 0.5
 lam = 0.01
-num_iterations = 10
+num_iterations =  6 # we need to be able to look at the complete dataset
+saved_checkpoints = []
+max_saved = 2
+save_every_it = 2
 
-# Define a modular embedding model
-class EmbeddingModel(nn.Module):
-    def __init__(self, num_papers, num_venues, embedding_dim):
-        super().__init__()
-        self.papernode_embeddings = nn.Embedding(num_papers, embedding_dim)
-        self.venuenode_embeddings = nn.Embedding(num_venues, embedding_dim)
-
-    def forward(self):
-        return torch.cat((self.papernode_embeddings.weight, self.venuenode_embeddings.weight), dim=0)
-
-# Loss function 
-loss_function = LossFunction(alpha=alpha, eps=1e-10, use_regularization=True, lam=lam)
+run = wandb.init(
+    project="Bachelor_projekt",
+    name=f"run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
+    config={
+        "batch_size": batch_size,
+        "num_epochs": num_epochs,
+        "lr": lr,
+        "alpha": alpha,
+        "lam": lam
+    },
+)
 
 for i in range(num_iterations):
     print(f"Iteration {i+1}")
 
     # Generate mini-batches
     mini_b = mini_batches_code(paper_c_paper_train, l_prev, batch_size, ('paper', 'cites', 'paper'),data)
-    dm, l_next, remapped_datamatrix_tensor, random_sample = mini_b.node_mapping()
-
-    # Split paper and venue indices
-    dm1 = dm[dm[:, 4] != 4]
-    dm2 = dm[dm[:, 4] == 4]
-    paper_indices = torch.cat([torch.unique(dm1[:, 1]), torch.unique(dm1[:, 2])], dim=0)
-    venue_indices = torch.unique(dm2[:, 2], dim=0)
-
-    # Create model
-    model = EmbeddingModel(len(paper_indices), len(venue_indices), embedding_dim=2)
-
-    #Wrap in DataParallel for multi-GPU
-    if torch.cuda.device_count() > 1:
-        print(f"Using {torch.cuda.device_count()} GPUs")
-        model = nn.DataParallel(model)
-
-    model.to(device)
-
-    # Optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    dm, l_next, remapped_datamatrix_tensor,random_sample = mini_b.node_mapping()
 
     # Move data to GPU
     remapped_datamatrix_tensor = remapped_datamatrix_tensor.to(device)
@@ -190,6 +175,8 @@ for i in range(num_iterations):
     for idx, node in enumerate(venue_indices):
         venue_dict[int(node)] = venue_weights[idx].clone()
 
+    wandb.log({"loss": loss, "iteration": i+1})
+
     # Update node list for the next iteration
     l_prev = l_next
 
@@ -198,7 +185,37 @@ for i in range(num_iterations):
         gc.collect()
         torch.cuda.empty_cache()
 
-# Finalize: detach and move to CPU
+    if (i + 1) % save_every_it == 0:
+        iter_id = i + 1
+
+        # Define filenames with iteration
+        trainer_path = f"checkpoint/trainer_iter{iter_id}.pt"
+        paper_path = f"checkpoint/paper_dict_iter{iter_id}.pt"
+        venue_path = f"checkpoint/venue_dict_iter{iter_id}.pt"
+
+        # Save current versions
+        N_emb.save_checkpoint(trainer_path)
+        torch.save(paper_dict, paper_path)
+        torch.save(venue_dict, venue_path)
+
+        # Add current to the list
+        saved_checkpoints.append((trainer_path, paper_path, venue_path))
+
+        # Remove older ones if more than 2 are saved
+        if len(saved_checkpoints) > max_saved:
+            old_trainer, old_paper, old_venue = saved_checkpoints.pop(0)
+            for f in [old_trainer, old_paper, old_venue]:
+                if os.path.exists(f):
+                    os.remove(f)
+
+        # Log artifact to wandb (optional, still useful)
+        artifact = wandb.Artifact(f"embedding_checkpoint_{iter_id}", type="model")
+        artifact.add_file(trainer_path)
+        artifact.add_file(paper_path)
+        artifact.add_file(venue_path)
+        wandb.log_artifact(artifact)
+
+
 for key in paper_dict:
     paper_dict[key] = paper_dict[key].detach().clone().cpu()
     paper_dict[key].requires_grad = False

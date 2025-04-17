@@ -14,7 +14,6 @@ emb_matrix = torch.load("dataset/ogbn_mag/processed/hpc/emb_matrix.pt", map_loca
 paper_c_paper_valid = torch.load("dataset/ogbn_mag/processed/paper_c_paper_valid.pt", map_location=device)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
-
 # Number of iterations (adjust as needed)
 num_iterations = len(paper_c_paper_valid)-1
 
