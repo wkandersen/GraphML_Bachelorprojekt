@@ -13,7 +13,7 @@ class NodeEmbeddingTrainer:
         self.dm = dm
         self.remapped_datamatrix_tensor = remapped_datamatrix_tensor
         self.paper_dict = paper_dict
-        self.venue_dict = venue_dictGraphML_Bachelorprojekt
+        self.venue_dict = venue_dict
         self.embedding_dim = embedding_dim
         self.num_epochs = num_epochs
         self.lr = lr
