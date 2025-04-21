@@ -20,13 +20,8 @@ sweep_configuration = {
     "name": "embedding_hyperparam_sweep",
     "metric": {"goal": "minimize", "name": "final_loss"},
     "parameters": {
-<<<<<<< HEAD
         "batch_size": {"values": [50,75]},  # Must remain as list to avoid type issues
         "num_epochs": {"values": [30,50,70]},
-=======
-        "batch_size": {"values": [75]},  # Must remain as list to avoid type issues
-        "num_epochs": {"values": [10]},
->>>>>>> 6584862ce5b07d62f0202e9d1748d0ed742b7192
         "lr": {"values": [0.01, 0.1]},
         "alpha": {"values": [0.1, 0.05]},
         "lam": {"values": [0.001, 0.01]}
