@@ -75,6 +75,30 @@ class NodeEmbeddingTrainer:
             venue_dict[int(node)] = self.venuenode_embeddings.weight[idx].detach().cpu().clone()
             
         return paper_dict, venue_dict, loss.detach().item()
+    
+    def save_checkpoint(self, path):
+        checkpoint = {
+            'papernode_embeddings': self.papernode_embeddings.state_dict(),
+            'venuenode_embeddings': self.venuenode_embeddings.state_dict(),
+            'paper_optimizer': self.paper_optimizer.state_dict(),
+            'venue_optimizer': self.venue_optimizer.state_dict(),
+            'specific_papernode_indices': self.specific_papernode_indices,
+            'specific_venuenode_indices': self.specific_venuenode_indices,
+        }
+        torch.save(checkpoint, path)
+
+    @staticmethod
+    def load_checkpoint(path, *args, **kwargs):
+        obj = NodeEmbeddingTrainer(*args, **kwargs)
+        checkpoint = torch.load(path)
+        obj.papernode_embeddings.load_state_dict(checkpoint['papernode_embeddings'])
+        obj.venuenode_embeddings.load_state_dict(checkpoint['venuenode_embeddings'])
+        obj.paper_optimizer.load_state_dict(checkpoint['paper_optimizer'])
+        obj.venue_optimizer.load_state_dict(checkpoint['venue_optimizer'])
+        obj.specific_papernode_indices = checkpoint['specific_papernode_indices']
+        obj.specific_venuenode_indices = checkpoint['specific_venuenode_indices']
+        return obj
+
 
 
 # # Example usage:

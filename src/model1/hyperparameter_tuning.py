@@ -16,8 +16,8 @@ import GPyOpt
 
 # hyperparameters
 batch_size = [3] # never (3) as it is seen as range when in a tuple
-num_epochs = [2,3]
-lr = [0.01,0.1]
+num_epochs = [40]
+lr = [0.1]
 alpha = [0.1,0.05]
 lam = [0.001,0.01]
 
@@ -41,6 +41,7 @@ def objective_function(params):
     # Load initial embeddings
     embed_venue = torch.load("dataset/ogbn_mag/processed/venue_embeddings.pt")
     embed_paper = torch.load("dataset/ogbn_mag/processed/paper_embeddings.pt")
+    data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
     # Initialize dictionaries to store embeddings
     paper_dict = {k: v.clone() for k, v in embed_paper.items()}
@@ -54,7 +55,7 @@ def objective_function(params):
         print(f"Batch size: {params[0][0]}, Num epochs: {params[0][1]}, LR: {params[0][2]}, Alpha: {params[0][3]}, Lambda: {params[0][4]}")
 
         # Generate mini-batches
-        mini_b = mini_batches_code(paper_c_paper_train, l_prev, int(params[0][0]), ('paper', 'cites', 'paper'))
+        mini_b = mini_batches_code(paper_c_paper_train, l_prev, int(params[0][0]), ('paper', 'cites', 'paper'),data)
         dm, l_next, remapped_datamatrix_tensor,random_sample = mini_b.node_mapping()
 
         # Train embeddings and update dictionaries **in place**

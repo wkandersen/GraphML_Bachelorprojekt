@@ -2,13 +2,19 @@ import random
 import itertools
 import torch
 
+# from memory_profiler import profile
+
+# @profile
+
 class mini_batches_code:
-    def __init__(self,data, unique_list, sample_size,edge_type):
+    def __init__(self,data, unique_list, sample_size,edge_type,full_data):
         self.data = data
         self.sample_size = sample_size
         self.edge_type = edge_type
         self.unique_list = unique_list
+        self.full_data = full_data
 
+    # @profile
     def get_batch(self):
         # random.seed(99) 
         # torch.manual_seed(99)
@@ -21,8 +27,9 @@ class mini_batches_code:
         filtered_data = self.data[:,mask]
         return filtered_data, random_sample, list_pcp
     
+    # @profile
     def data_matrix(self):
-        data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
+        data = self.full_data
         edge_entities = {
             'paper': 0,
             'author': 1,
@@ -61,6 +68,7 @@ class mini_batches_code:
         data_matrix = torch.cat((result_tensor, non_edges_tensor, venues_tensor), dim=0)
         return data_matrix, unique_list, random_sample
     
+    # @profile
     def node_mapping(self):
 
         datamatrix_tensor,ul,random_sample = self.data_matrix()
@@ -89,7 +97,6 @@ class mini_batches_code:
         ])
 
         return datamatrix_tensor, ul, remapped_datamatrix_tensor, random_sample
-
 
 # mini_b = mini_batches_code(paper_c_paper_train, list(paper_c_paper.unique().numpy()), 10,('paper', 'cites', 'paper'))
 # dm,l1 = mini_b.data_matrix()

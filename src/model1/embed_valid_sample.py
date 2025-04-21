@@ -12,6 +12,7 @@ print(f"Using device: {device}")
 
 emb_matrix = torch.load("dataset/ogbn_mag/processed/hpc/emb_matrix.pt", map_location=device)
 paper_c_paper_valid = torch.load("dataset/ogbn_mag/processed/paper_c_paper_valid.pt", map_location=device)
+data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
 # Number of iterations (adjust as needed)
 num_iterations = len(paper_c_paper_valid)-1
@@ -25,7 +26,7 @@ for i in range(num_iterations):
     print(f"Iteration {i+1}")
 
     # Generate mini-batches
-    mini_b_new = mini_batches_code(paper_c_paper_valid, l_prev, 1, ('paper', 'cites', 'paper'))
+    mini_b_new = mini_batches_code(paper_c_paper_valid, l_prev, 1, ('paper', 'cites', 'paper'),data)
     dm_new,l_next,remapped_datamatrix_tensor_new,random_sample = mini_b_new.node_mapping()
 
     dm_new = dm_new.to(device)
