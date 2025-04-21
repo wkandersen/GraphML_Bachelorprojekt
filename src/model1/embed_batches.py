@@ -71,8 +71,10 @@ for i in range(num_iterations):
         num_epochs=num_epochs,
         lr=lr,
         alpha=alpha,
-        lam=lam
+        lam=lam,
+        device=device
     )
+
     paper_dict, venue_dict,loss = N_emb.train()  # Directly update original dictionaries
 
     wandb.log({"loss": loss, "iteration": i+1})
@@ -90,15 +92,17 @@ for i in range(num_iterations):
         iter_id = i + 1
 
         os.makedirs("checkpoint", exist_ok=True)
-        # Define filenames with iteration
+        #Define
         trainer_path = f"checkpoint/trainer_iter{iter_id}.pt"
         paper_path = f"checkpoint/paper_dict_iter{iter_id}.pt"
         venue_path = f"checkpoint/venue_dict_iter{iter_id}.pt"
+        l_prev_path = f"checkpoint/l_prev_iter{iter_id}.pt"
 
         # Save current versions
         N_emb.save_checkpoint(trainer_path)
         torch.save(paper_dict, paper_path)
         torch.save(venue_dict, venue_path)
+        torch.save(l_prev,l_prev_path)
 
         # Add current to the list
         saved_checkpoints.append((trainer_path, paper_path, venue_path))

@@ -2,12 +2,12 @@
 #BSUB -J Graph_ML_Bachelor
 #BSUB -o HPC_outputs/ML_bachelor_%J.out
 #BSUB -e HPC_outputs/ML_bachelor_%J.err
-#BSUB -q gpua40
+#BSUB -q gpuv100
 #BSUB -R "span[hosts=1]"
-#BSUB -gpu "num=2:mode=exclusive_process"
-#BSUB -R "rusage[mem=3GB]"
-#BSUB -n 8
-#BSUB -W 4:00
+#BSUB -gpu "num=1:mode=exclusive_process"
+#BSUB -R "rusage[mem=8GB]"
+#BSUB -n 4
+#BSUB -W 23:00
 #BSUB -B
 #BSUB -N
 #BSUB -u williamkirkandersen@gmail.com

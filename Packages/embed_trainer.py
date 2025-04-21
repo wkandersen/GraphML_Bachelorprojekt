@@ -8,8 +8,7 @@ from Packages.loss_function import LossFunction
 import wandb
 
 class NodeEmbeddingTrainer:
-    def __init__(self, dm, remapped_datamatrix_tensor, paper_dict, venue_dict, embedding_dim=2, num_epochs=10, lr=0.01, alpha=1,eps=1e-10,lam=0.01):
-        # Initialize input data, parameters, and setup
+    def __init__(self, dm, remapped_datamatrix_tensor, paper_dict, venue_dict, embedding_dim=2, num_epochs=10, lr=0.01, alpha=1, eps=1e-10, lam=0.01, device=None):        # Initialize input data, parameters, and setup
         self.dm = dm
         self.remapped_datamatrix_tensor = remapped_datamatrix_tensor
         self.paper_dict = paper_dict
@@ -20,7 +19,7 @@ class NodeEmbeddingTrainer:
         self.alpha = alpha
         self.lam = lam
         self.eps = eps
-
+        self.device = device or torch.device("cpu")
         # Process data
         self.dm1 = dm[dm[:, 4] != 4]
         self.dm2 = dm[dm[:, 4] == 4]
@@ -30,8 +29,9 @@ class NodeEmbeddingTrainer:
         self.specific_venuenode_indices = torch.unique(self.dm2[:, 2], dim=0)
 
         # Create embeddings
-        self.papernode_embeddings = torch.nn.Embedding(len(self.specific_papernode_indices), self.embedding_dim)
-        self.venuenode_embeddings = torch.nn.Embedding(len(self.specific_venuenode_indices), self.embedding_dim)
+        self.papernode_embeddings = torch.nn.Embedding(len(self.specific_papernode_indices), self.embedding_dim).to(self.device)
+        self.venuenode_embeddings = torch.nn.Embedding(len(self.specific_venuenode_indices), self.embedding_dim).to(self.device)
+
 
         # Optimizers
         self.paper_optimizer = torch.optim.Adam(self.papernode_embeddings.parameters(), lr=self.lr)
@@ -50,6 +50,7 @@ class NodeEmbeddingTrainer:
 
             # Concatenate the embeddings
             z = torch.cat((self.papernode_embeddings.weight, self.venuenode_embeddings.weight), dim=0)
+            assert z.device == self.remapped_datamatrix_tensor.device, "Device mismatch in training!"
             # types = self.dm[:, 3:]
             loss = self.loss_function.compute_loss(z, self.remapped_datamatrix_tensor[:, :3])  # Compute loss
             
