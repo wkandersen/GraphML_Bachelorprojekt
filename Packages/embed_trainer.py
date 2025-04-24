@@ -43,27 +43,38 @@ class NodeEmbeddingTrainer:
     def train(self):
         venue_dict = self.venue_dict
         paper_dict = self.paper_dict
-        # Training loop
+
+        best_loss = float('inf')
+        patience = 10  # Number of epochs to wait for improvement
+        min_delta = 1e-3  # Minimum change to qualify as an improvement
+        counter = 0  # Counts epochs with no significant improvement
+
         for epoch in range(self.num_epochs):
             self.paper_optimizer.zero_grad()
             self.venue_optimizer.zero_grad()
 
-            # Concatenate the embeddings
             z = torch.cat((self.papernode_embeddings.weight, self.venuenode_embeddings.weight), dim=0)
-            # types = self.dm[:, 3:]
             loss = self.loss_function.compute_loss(z, self.remapped_datamatrix_tensor[:, :3])  # Compute loss
-            
-            # Backpropagation and optimization
+
             loss.backward()
             self.paper_optimizer.step()
             self.venue_optimizer.step()
 
-            # log to wandb
             wandb.log({"epoch_loss": loss.item(), "epoch": epoch})
 
-            # Print loss every 10 epochs
             if epoch % 10 == 0:
                 print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
+
+            # Early stopping logic
+            if best_loss - loss.item() > min_delta:
+                best_loss = loss.item()
+                counter = 0
+            else:
+                counter += 1
+
+            if counter >= patience:
+                print(f"Stopping early at epoch {epoch}. Loss has converged.")
+                break
 
         print(self.specific_venuenode_indices)
 
