@@ -9,6 +9,8 @@ __pycache__/
 
 dataset/
 HPC_outputs/
+checkpoint/
+wandb/
 
 *.err
 *.out

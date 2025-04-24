@@ -3,6 +3,8 @@ import copy
 import sys
 import os
 import wandb
+import random
+import numpy as np
 
 # Setup paths
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -20,16 +22,23 @@ sweep_configuration = {
     "name": "embedding_hyperparam_sweep",
     "metric": {"goal": "minimize", "name": "final_loss"},
     "parameters": {
-        "batch_size": {"values": [75]},  # Must remain as list to avoid type issues
-        "num_epochs": {"values": [10]},
+        "batch_size": {"values": [100,500,700]},  # Must remain as list to avoid type issues
+        "num_epochs": {"values": [10,30,50]},
         "lr": {"values": [0.01, 0.1]},
-        "alpha": {"values": [0.1, 0.05]},
-        "lam": {"values": [0.001, 0.01]}
+        "alpha": {"values": [0.5,0.1, 0.05]},
+        "lam": {"values": [0.001, 0.01,0.1]}
     }
 }
 
 # Sweep function
 def sweep_objective():
+        # Set a fixed seed for reproducibility
+    seed = 42
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
     run = wandb.init()
     config = wandb.config
 
@@ -44,7 +53,7 @@ def sweep_objective():
 
     l_prev = list(paper_c_paper_train.unique().numpy())  # Initial node list
 
-    num_iterations = 1  # Adjust as needed
+    num_iterations = 1500  # Adjust as needed
     for i in range(num_iterations):
         print(f"Iteration {i+1}")
         print(f"Config: {dict(config)}")
@@ -66,7 +75,8 @@ def sweep_objective():
             num_epochs=config.num_epochs,
             lr=config.lr,
             alpha=config.alpha,
-            lam=config.lam
+            lam=config.lam,
+            device=device
         )
 
         paper_dict, venue_dict, loss = N_emb.train()

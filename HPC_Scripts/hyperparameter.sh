@@ -7,20 +7,16 @@
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -R "rusage[mem=8GB]"
 #BSUB -n 4
-#BSUB -W 23:00
+#BSUB -W 24:00
 #BSUB -B
 #BSUB -N
-#BSUB -u williamkirkandersen@gmail.com
+#BSUB -u s224197@dtu.dk
 
 export PYTHONPATH=$PYTHONPATH:$(pwd)/src:$(pwd)/Packages:$(pwd)/dataset
 
-nvidia-smi 
-
 source ~/miniconda3/bin/activate
-
 conda activate Bachelorprojekt
 
-python src/model1/embed_batches.py > joboutput_${LSB_JOBID}_$(date +%Y%m%d_%H%M%S).out 2>&1
-python src/model1/embed_valid_sample.py > joboutput_${LSB_JOBID}_$(date +%Y%m%d_%H%M%S).out 2>&1
-python src/model1/predict.py > joboutput_${LSB_JOBID}_$(date +%Y%m%d_%H%M%S).out 2>&1
- 
+export WANDB_API_KEY="b26660ac7ccf436b5e62d823051917f4512f987a"
+
+python src/model1/wandb_hyper_sweep.py
