@@ -7,8 +7,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Packages.loss_function import LossFunction
 import wandb
 
+
+
 class NodeEmbeddingTrainer:
-    def __init__(self, dm, remapped_datamatrix_tensor, paper_dict, venue_dict, embedding_dim=2, num_epochs=10, lr=0.01, alpha=1, eps=1e-10, lam=0.01, device=None):        # Initialize input data, parameters, and setup
+    def __init__(self, dm, remapped_datamatrix_tensor, paper_dict, venue_dict, embedding_dim=8, num_epochs=10, lr=0.01, alpha=1, eps=1e-10, lam=0.01, device=None):        # Initialize input data, parameters, and setup
         self.dm = dm
         self.remapped_datamatrix_tensor = remapped_datamatrix_tensor
         self.paper_dict = paper_dict
@@ -43,40 +45,61 @@ class NodeEmbeddingTrainer:
     def train(self):
         venue_dict = self.venue_dict
         paper_dict = self.paper_dict
-        # Training loop
+
+        best_loss = float('inf')
+        patience = 10  # Number of epochs to wait for improvement
+        min_delta = 1e-4  # Minimum change to qualify as an improvement
+        counter = 0  # Counts epochs with no significant improvement
+
         for epoch in range(self.num_epochs):
             self.paper_optimizer.zero_grad()
             self.venue_optimizer.zero_grad()
 
-            # Concatenate the embeddings
             z = torch.cat((self.papernode_embeddings.weight, self.venuenode_embeddings.weight), dim=0)
-            assert z.device == self.remapped_datamatrix_tensor.device, "Device mismatch in training!"
-            # types = self.dm[:, 3:]
             loss = self.loss_function.compute_loss(z, self.remapped_datamatrix_tensor[:, :3])  # Compute loss
-            
-            # Backpropagation and optimization
+
             loss.backward()
             self.paper_optimizer.step()
             self.venue_optimizer.step()
 
-            # log to wandb
             wandb.log({"epoch_loss": loss.item(), "epoch": epoch})
 
-            # Print loss every 10 epochs
             if epoch % 10 == 0:
                 print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
 
+            # Early stopping logic
+            if best_loss - loss.item() > min_delta:
+                best_loss = loss.item()
+                counter = 0
+            else:
+                counter += 1
+
+            if counter >= patience:
+                print(f"Stopping early at epoch {epoch}. Loss has converged.")
+                break
+            
+
         print(self.specific_venuenode_indices)
 
+
+
         for idx, node in enumerate(self.specific_papernode_indices):
+
             paper_dict[int(node)] = self.papernode_embeddings.weight[idx].detach().cpu().clone()
 
 
+
+
+
         for idx, node in enumerate(self.specific_venuenode_indices):
+
             venue_dict[int(node)] = self.venuenode_embeddings.weight[idx].detach().cpu().clone()
-            
+
+
+
         return paper_dict, venue_dict, loss.detach().item()
-    
+
+
     def save_checkpoint(self, path):
         checkpoint = {
             'papernode_embeddings': self.papernode_embeddings.state_dict(),

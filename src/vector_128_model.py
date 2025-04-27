@@ -9,6 +9,7 @@ import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score
 
 # Set working directory
 
@@ -61,7 +62,7 @@ def prep_data():
 
 
 class VenueDataModule(pl.LightningDataModule):
-    def __init__(self, X_train, y_train, X_valid, y_valid, X_test, y_test, batch_size=512):
+    def __init__(self, X_train, y_train, X_valid, y_valid, X_test, y_test, batch_size=2048):
         super().__init__()
         self.batch_size = batch_size
         self.train_dataset = TensorDataset(X_train, y_train)
@@ -77,9 +78,7 @@ class VenueDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=8)
 
-# --------------------------------
-# PyTorch Lightning Model
-# --------------------------------
+#MODEL
 class VenueClassifier(pl.LightningModule):
     def __init__(self, y, input_dim=128, num_classes=349, lr=0.01, dropout_rate = 0.3):
         super().__init__()
@@ -91,59 +90,61 @@ class VenueClassifier(pl.LightningModule):
         self.train_accuracies = []
         self.val_accuracies = []
         # Compute class weights
-        self._raw_class_weights = compute_class_weight('balanced', classes=np.unique(labels_y), y=labels_y)
-        self.register_buffer("class_weights", torch.tensor(self._raw_class_weights, dtype=torch.float32))  # buffer = auto-device-safe
+        # self._raw_class_weights = compute_class_weight('balanced', classes=np.unique(labels_y), y=labels_y)
+        # self.register_buffer("class_weights", torch.tensor(self._raw_class_weights, dtype=torch.float32))  # buffer = auto-device-safe
        
         self.model = nn.Sequential(
-            nn.Linear(input_dim, 256),
+            nn.Linear(input_dim, 512),
+            nn.BatchNorm1d(512),
             nn.ReLU(),
-            nn.Dropout(dropout_rate),          
-            nn.Linear(256, num_classes)
+            nn.Dropout(dropout_rate),
+            nn.Linear(512, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(512, num_classes)
         )
         self.criterion = nn.CrossEntropyLoss()  # Will be on correct device later
 
     def forward(self, x):
         return self.model(x)
     
-    def on_fit_start(self):
+    # def on_fit_start(self):
         # This guarantees it's on the same device as the model
-        self.criterion.weight = self.class_weights.to(self.device)
+        # self.criterion.weight = self.class_weights.to(self.device)
 
     def training_step(self, batch, batch_idx):
-        inputs, labels = batch
-        labels = labels.view(-1)  # Reshapes to [batch_size]
-        outputs = self(inputs)
-        loss = self.criterion(outputs, labels.squeeze())
+        x, y = batch
+        y = y.view(-1)
+        logits = self(x)
+        preds = logits.argmax(dim=1)
+        loss = self.criterion(logits, y)
         self.log("train_loss", loss, prog_bar=True)
         self.train_losses.append(loss.item())
+        acc = accuracy_score(y.cpu(), preds.cpu())
+        self.log("train_acc", acc, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        inputs, labels = batch
-        labels = labels.view(-1)  # Reshapes to [batch_size]
-        outputs = self(inputs)
-        loss = self.criterion(outputs, labels.squeeze())
-        print(f"labels shape: {labels.shape}, outputs shape: {outputs.shape}")
-        acc = (outputs.argmax(dim=1) == labels).float().to(outputs.device).mean()
-        self.log("val_loss", loss, prog_bar=True)
-        self.val_losses.append(loss.item())
+        x, y = batch
+        y = y.view(-1)  # ensure y is 1D
+        logits = self(x)
+        preds = logits.argmax(dim=1)
+        loss = self.criterion(logits, y)
+        acc = accuracy_score(y.cpu(), preds.cpu())
         self.log("val_acc", acc, prog_bar=True)
-        probs = torch.softmax(outputs, dim=1)
-        print(probs[0].topk(5))
-        return loss
+        self.val_losses.append(loss.item())
 
     def test_step(self, batch, batch_idx):
-        inputs, labels = batch
-        labels = labels.view(-1)  # Reshapes to [batch_size]
-        outputs = self(inputs)
-        loss = self.criterion(outputs, labels.squeeze())
-        acc = (outputs.argmax(dim=1) == labels).float().mean()
-        self.log("test_loss", loss)
+        x, y = batch
+        y = y.view(-1)  # ensure y is 1D
+        logits = self(x)
+        preds = logits.argmax(dim=1)
+        acc = accuracy_score(y.cpu(), preds.cpu())
         self.log("test_acc", acc)
-        return loss
 
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.parameters(), lr=self.lr)
+        return optim.AdamW(self.parameters(), lr=self.lr, weight_decay=1e-4)
 
         # Plotting method after training
     def plot_metrics(self, path="Plots/128_vector"):

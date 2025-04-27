@@ -11,9 +11,9 @@ from sklearn.metrics import confusion_matrix, classification_report
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict.pt", map_location=device)
-venue_dict = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict.pt", map_location=device)
-venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device)
+valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict.pt", map_location=device, weights_only=False)
+venue_dict = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict.pt", map_location=device, weights_only=False)
+venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 predictions = {}
 
 for x, y in valid_dict.items():
@@ -38,7 +38,10 @@ for x, y in valid_dict.items():
         # Get the corresponding node ID and its softmax probability
         predicted_node_id = node_ids[high_prob_idx]
         highest_prob_value = softma[high_prob_idx].item()
-        predictions[x] = (int(venue_value[x].numpy()),predicted_node_id)
+        predictions[x] = (int(venue_value[x].cpu().numpy()), predicted_node_id)
+                
+        
+
 
 # Accuarcy calculation
 correct_predictions = 0

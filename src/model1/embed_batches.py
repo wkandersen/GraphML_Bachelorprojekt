@@ -18,8 +18,8 @@ print(f"Using device: {device}")
 
 print("starting")
 # Load initial embeddings
-embed_venue = torch.load("dataset/ogbn_mag/processed/venue_embeddings.pt", map_location=device)
-embed_paper = torch.load("dataset/ogbn_mag/processed/paper_embeddings.pt", map_location=device)
+embed_venue = torch.load("dataset/ogbn_mag/processed/venue_embeddings_8.pt", map_location=device)
+embed_paper = torch.load("dataset/ogbn_mag/processed/paper_embeddings_8.pt", map_location=device)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
 # Initialize dictionaries to store embeddings
@@ -30,11 +30,11 @@ l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
 
 # hyperparameters
 batch_size = 100
-num_epochs = 50
+num_epochs = 125
 lr = 0.01
-alpha = 0.5
+alpha = 0.1
 lam = 0.01
-num_iterations =  100 # we need to be able to look at the complete dataset
+num_iterations =  int(len(paper_dict)/batch_size)-1 # we need to be able to look at the complete dataset
 saved_checkpoints = []
 max_saved = 2
 save_every_iter = 5
@@ -75,7 +75,7 @@ for i in range(num_iterations):
         device=device
     )
 
-    paper_dict, venue_dict,loss = N_emb.train()  # Directly update original dictionaries
+    paper_dict, venue_dict, loss = N_emb.train()  # Directly update original dictionaries
 
     wandb.log({"loss": loss, "iteration": i+1})
 
@@ -92,34 +92,31 @@ for i in range(num_iterations):
         iter_id = i + 1
 
         os.makedirs("checkpoint", exist_ok=True)
-        #Define
-        trainer_path = f"checkpoint/trainer_iter{iter_id}.pt"
-        paper_path = f"checkpoint/paper_dict_iter{iter_id}.pt"
-        venue_path = f"checkpoint/venue_dict_iter{iter_id}.pt"
-        l_prev_path = f"checkpoint/l_prev_iter{iter_id}.pt"
+        trainer_path = f"checkpoint/trainer_iter_8_125_epoch_{iter_id}.pt"
+        paper_path = f"checkpoint/paper_dict_iter_8_125_epoch_{iter_id}.pt"
+        venue_path = f"checkpoint/venue_dict_iter_8_125_epoch_{iter_id}.pt"
+        l_prev_path = f"checkpoint/l_prev_iter_8_125_epoch_{iter_id}.pt"
 
-        # Save current versions
         N_emb.save_checkpoint(trainer_path)
         torch.save(paper_dict, paper_path)
         torch.save(venue_dict, venue_path)
-        torch.save(l_prev,l_prev_path)
+        torch.save(l_prev, l_prev_path)
 
-        # Add current to the list
-        saved_checkpoints.append((trainer_path, paper_path, venue_path))
+        saved_checkpoints.append((trainer_path, paper_path, venue_path, l_prev_path))
 
-        # Remove older ones if more than 2 are saved
+        # Remove older checkpoints if more than 2 are saved
         if len(saved_checkpoints) > max_saved:
-            old_trainer, old_paper, old_venue = saved_checkpoints.pop(0)
-            for f in [old_trainer, old_paper, old_venue]:
+            old_files = saved_checkpoints.pop(0)
+            for f in old_files:
                 if os.path.exists(f):
                     os.remove(f)
-
-        # Log artifact to wandb (optional, still useful)
-        artifact = wandb.Artifact(f"embedding_checkpoint_{iter_id}", type="model")
-        artifact.add_file(trainer_path)
-        artifact.add_file(paper_path)
-        artifact.add_file(venue_path)
-        wandb.log_artifact(artifact)
+        
+        # # Log artifact to wandb (optional, still useful)
+        # artifact = wandb.Artifact(f"embedding_checkpoint_{iter_id}", type="model")
+        # artifact.add_file(trainer_path)
+        # artifact.add_file(paper_path)
+        # artifact.add_file(venue_path)
+        # wandb.log_artifact(artifact)
 
 
 for key in paper_dict:
@@ -130,11 +127,11 @@ for key in venue_dict:
     venue_dict[key] = venue_dict[key].detach().clone().cpu()
     venue_dict[key].requires_grad = False  # Ensure no gradients are tracked
 
-torch.save(paper_dict, "dataset/ogbn_mag/processed/hpc/paper_dict.pt")
-torch.save(venue_dict, "dataset/ogbn_mag/processed/hpc/venue_dict.pt")
+torch.save(paper_dict, "dataset/ogbn_mag/processed/hpc/paper_dict_8_125_epoch.pt")
+torch.save(venue_dict, "dataset/ogbn_mag/processed/hpc/venue_dict_8_125_epoch.pt")
 
 emb_matrix = torch.stack(list(paper_dict.values()) + list(venue_dict.values()))
 
-torch.save(emb_matrix, "dataset/ogbn_mag/processed/hpc/emb_matrix.pt")
+torch.save(emb_matrix, "dataset/ogbn_mag/processed/hpc/emb_matrix_8_125_epoch.pt")
 
 print('Embed_batches done')
