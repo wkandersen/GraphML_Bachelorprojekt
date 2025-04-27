@@ -19,14 +19,15 @@ print(f"Using device: {device}")
 # Sweep configuration
 sweep_configuration = {
     "method": "random",  # Can also use "bayes"
-    "name": "embedding_hyperparam_sweep",
+    "name": "lambda_alpha_sweep",
     "metric": {"goal": "minimize", "name": "final_loss"},
     "parameters": {
-        "batch_size": {"values": [100,500,700]},  # Must remain as list to avoid type issues
-        "num_epochs": {"values": [10,30,50]},
-        "lr": {"values": [0.01, 0.1]},
-        "alpha": {"values": [0.5,0.1, 0.05]},
-        "lam": {"values": [0.001, 0.01,0.1]}
+        "batch_size": {"values": [100]},  # Must remain as list to avoid type issues
+        "num_epochs": {"values": [100]},
+        "lr": {"values": [0.01]},
+        "alpha": {"values": [0.01,0.1,0.5,1]},
+        "lam": {"values": [0,0.001, 0.01,0.1,0.5]},
+        "num_iterations": {"values": [1500]},
     }
 }
 
@@ -53,7 +54,7 @@ def sweep_objective():
 
     l_prev = list(paper_c_paper_train.unique().numpy())  # Initial node list
 
-    num_iterations = 1500  # Adjust as needed
+    num_iterations = config.num_iterations  # Adjust as needed
     for i in range(num_iterations):
         print(f"Iteration {i+1}")
         print(f"Config: {dict(config)}")
@@ -90,4 +91,4 @@ def sweep_objective():
 if __name__ == "__main__":
     wandb.login()
     sweep_id = wandb.sweep(sweep=sweep_configuration, project="Bachelor_projekt")
-    wandb.agent(sweep_id, function=sweep_objective, count=15)  # Run 15 trials
+    wandb.agent(sweep_id, function=sweep_objective, count=16)  # Run 15 trials
