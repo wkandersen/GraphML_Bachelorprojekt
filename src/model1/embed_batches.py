@@ -83,7 +83,9 @@ for i in range(num_iterations):
     paper_dict, venue_dict, loss = N_emb.train()  # Directly update original dictionaries
 
     if i % 100 == 0:
-        emb_matrix = torch.stack(list(paper_dict.values()) + list(venue_dict.values()))
+        paper_values = [val.to(device) for val in paper_dict.values()]
+        venue_values = [val.to(device) for val in venue_dict.values()]
+        emb_matrix = torch.stack(paper_values + venue_values)
         trainer_valid = EmbeddingTrainer_valid(emb_matrix=emb_matrix,embedding_dim=embedding_dim,num_epochs=50,samples=300,learning_rate=lr,alpha=alpha)
         valid_dict,loss_valid = trainer_valid.train()
 
