@@ -7,6 +7,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Packages.mini_batches import mini_batches_code
 from Packages.embed_trainer import NodeEmbeddingTrainer
 from Packages.data_divide import paper_c_paper_train
+from Packages.prediction import Prediction
+from embed_valid_sample import EmbeddingTrainer_valid
 import gc
 import wandb
 from datetime import datetime
@@ -17,10 +19,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 print("starting")
-embedding_dim = 4
+embedding_dim = 2
 # Load initial embeddings
-embed_venue = torch.load(f"dataset/ogbn_mag/processed/venue_embeddings_{embedding_dim}.pt", map_location=device)
-embed_paper = torch.load(f"dataset/ogbn_mag/processed/paper_embeddings_{embedding_dim}.pt", map_location=device)
+embed_venue = torch.load(f"dataset/ogbn_mag/processed/venue_embeddings.pt", map_location=device)
+embed_paper = torch.load(f"dataset/ogbn_mag/processed/paper_embeddings.pt", map_location=device)
+venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
 # Initialize dictionaries to store embeddings
@@ -30,8 +33,8 @@ venue_dict = {k: v.clone() for k, v in embed_venue.items()}
 l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
 
 # hyperparameters
-batch_size = 150
-num_epochs = 200
+batch_size = 5
+num_epochs = 10
 lr = 0.01
 alpha = 0.1
 lam = 0.001
@@ -78,6 +81,17 @@ for i in range(num_iterations):
     )
 
     paper_dict, venue_dict, loss = N_emb.train()  # Directly update original dictionaries
+
+    if i % 100 == 0:
+        emb_matrix = torch.stack(list(paper_dict.values()) + list(venue_dict.values()))
+        trainer_valid = EmbeddingTrainer_valid(emb_matrix=emb_matrix,embedding_dim=embedding_dim,num_epochs=50,samples=300,learning_rate=lr,alpha=alpha)
+        valid_dict,loss_valid = trainer_valid.train()
+
+        pred_class = Prediction(alpha=alpha, paper_dict=paper_dict, valid_dict=valid_dict, venue_dict=venue_dict, venue_value=venue_value)
+        acc_train, acc_valid = pred_class.accuracy()
+        wandb.log({"loss_valid": loss_valid, "iteration": i+1})
+        wandb.log({"acc_valid": acc_valid, "iteration": i+1})
+        wandb.log({"acc_train": acc_train, "iteration": i+1})
 
     wandb.log({"loss": loss, "iteration": i+1})
 
