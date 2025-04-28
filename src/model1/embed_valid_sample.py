@@ -5,28 +5,39 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Packages.mini_batches import mini_batches_code
 from Packages.loss_function import LossFunction
+from Packages.data_divide import paper_c_paper_train, paper_c_paper_valid
 import gc
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-emb_matrix = torch.load("dataset/ogbn_mag/processed/hpc/emb_matrix.pt", map_location=device)
-paper_c_paper_valid = torch.load("dataset/ogbn_mag/processed/paper_c_paper_valid.pt", map_location=device)
-data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
+embedding_dim = 4
+num_epochs = 125
 
-# Number of iterations (adjust as needed)
-num_iterations = len(paper_c_paper_valid)-1
+emb_matrix = torch.load(f"dataset/ogbn_mag/processed/hpc/emb_matrix_{embedding_dim}_{num_epochs}_epoch.pt", map_location=device)
+# paper_c_paper_valid = torch.load("dataset/ogbn_mag/processed/paper_c_paper_valid.pt", map_location=device)
+data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
 valid_dict = {}
 
-l_prev =  list(paper_c_paper_valid[0].unique().numpy())# Initial list of nodes
+# Get unique node IDs from both train and valid edges
+unique_train = set(paper_c_paper_train.flatten().unique().tolist())
+unique_valid = set(paper_c_paper_valid.flatten().unique().tolist())
+
+# Keep only validation nodes that do not appear in training edges
+valid_exclusive = unique_valid - unique_train
+
+# Initial list of nodes for iterations
+l_prev = list(valid_exclusive)
+num_iterations = int(len(l_prev)-1)
+
 sample = 1
 
 for i in range(num_iterations):
     print(f"Iteration {i+1}")
 
     # Generate mini-batches
-    mini_b_new = mini_batches_code(paper_c_paper_valid, l_prev, 1, ('paper', 'cites', 'paper'),data)
+    mini_b_new = mini_batches_code(paper_c_paper_valid, l_prev, sample, ('paper', 'cites', 'paper'),data)
     dm_new,l_next,remapped_datamatrix_tensor_new,random_sample = mini_b_new.node_mapping()
 
     dm_new = dm_new.to(device)
@@ -41,7 +52,7 @@ for i in range(num_iterations):
 
     new_optimizer = torch.optim.Adam(new_embedding.parameters(), lr=0.01)
 
-    num_epochs = 10
+    num_epochs = 30
 
         # Training loop
     for epoch in range(num_epochs):
@@ -70,7 +81,6 @@ for i in range(num_iterations):
         gc.collect()
         torch.cuda.empty_cache()
 
-torch.save(valid_dict, "dataset/ogbn_mag/processed/hpc/valid_dict.pt")
+torch.save(valid_dict, f"dataset/ogbn_mag/processed/hpc/valid_dict_{embedding_dim}_{num_epochs}_epoch.pt")
 
 print('embed_valid done')
-        
