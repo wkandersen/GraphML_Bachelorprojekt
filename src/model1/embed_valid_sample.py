@@ -11,7 +11,10 @@ import gc
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-emb_matrix = torch.load("dataset/ogbn_mag/processed/hpc/emb_matrix_8.pt", map_location=device)
+embedding_dim = 4
+num_epochs = 125
+
+emb_matrix = torch.load(f"dataset/ogbn_mag/processed/hpc/emb_matrix_{embedding_dim}_{num_epochs}_epoch.pt", map_location=device)
 # paper_c_paper_valid = torch.load("dataset/ogbn_mag/processed/paper_c_paper_valid.pt", map_location=device)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
@@ -78,7 +81,6 @@ for i in range(num_iterations):
         gc.collect()
         torch.cuda.empty_cache()
 
-torch.save(valid_dict, "dataset/ogbn_mag/processed/hpc/valid_dict_8.pt")
+torch.save(valid_dict, f"dataset/ogbn_mag/processed/hpc/valid_dict_{embedding_dim}_{num_epochs}_epoch.pt")
 
 print('embed_valid done')
-        
