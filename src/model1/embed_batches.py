@@ -29,8 +29,8 @@ venue_dict = {k: v.clone() for k, v in embed_venue.items()}
 l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
 
 # hyperparameters
-batch_size = 100
-num_epochs = 125
+batch_size = 300
+num_epochs = 375
 lr = 0.01
 alpha = 0.1
 lam = 0.01
@@ -92,10 +92,10 @@ for i in range(num_iterations):
         iter_id = i + 1
 
         os.makedirs("checkpoint", exist_ok=True)
-        trainer_path = f"checkpoint/trainer_iter_8_125_epoch_{iter_id}.pt"
-        paper_path = f"checkpoint/paper_dict_iter_8_125_epoch_{iter_id}.pt"
-        venue_path = f"checkpoint/venue_dict_iter_8_125_epoch_{iter_id}.pt"
-        l_prev_path = f"checkpoint/l_prev_iter_8_125_epoch_{iter_id}.pt"
+        trainer_path = f"checkpoint/trainer_iter_8_250_epoch_{iter_id}.pt"
+        paper_path = f"checkpoint/paper_dict_iter_8_250_epoch_{iter_id}.pt"
+        venue_path = f"checkpoint/venue_dict_iter_8_250_epoch_{iter_id}.pt"
+        l_prev_path = f"checkpoint/l_prev_iter_8_250_epoch_{iter_id}.pt"
 
         N_emb.save_checkpoint(trainer_path)
         torch.save(paper_dict, paper_path)
@@ -127,11 +127,11 @@ for key in venue_dict:
     venue_dict[key] = venue_dict[key].detach().clone().cpu()
     venue_dict[key].requires_grad = False  # Ensure no gradients are tracked
 
-torch.save(paper_dict, "dataset/ogbn_mag/processed/hpc/paper_dict_8_125_epoch.pt")
-torch.save(venue_dict, "dataset/ogbn_mag/processed/hpc/venue_dict_8_125_epoch.pt")
+torch.save(paper_dict, "dataset/ogbn_mag/processed/hpc/paper_dict_8_250_epoch.pt")
+torch.save(venue_dict, "dataset/ogbn_mag/processed/hpc/venue_dict_8_250_epoch.pt")
 
 emb_matrix = torch.stack(list(paper_dict.values()) + list(venue_dict.values()))
 
-torch.save(emb_matrix, "dataset/ogbn_mag/processed/hpc/emb_matrix_8_125_epoch.pt")
+torch.save(emb_matrix, "dataset/ogbn_mag/processed/hpc/emb_matrix_8_250_epoch.pt")
 
 print('Embed_batches done')
