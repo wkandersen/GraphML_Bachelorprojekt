@@ -12,19 +12,27 @@ class mini_batches_code:
         self.device = self.data.device if isinstance(self.data, torch.Tensor) else torch.device("cpu")
 
     def get_batch(self):
-        list_pcp = self.unique_list
-        random_sample = random.sample(list_pcp, self.sample_size)
-        print(random_sample)
+        if len(self.unique_list) < self.sample_size:
+            # Put random_sample on the same device as self.data
+            random_sample = self.unique_list
+            sample_tensor = torch.tensor(random_sample, device=self.device)
+            mask = torch.isin(self.data[0], sample_tensor)
+            filtered_data = self.data[:, mask]
+            return filtered_data, random_sample, []
+        else:
+            list_pcp = self.unique_list
+            random_sample = random.sample(list_pcp, self.sample_size)
+            print(random_sample)
 
-        for value in random_sample:
-            list_pcp.remove(value)
+            for value in random_sample:
+                list_pcp.remove(value)
 
-        # Put random_sample on the same device as self.data
-        sample_tensor = torch.tensor(random_sample, device=self.device)
-        mask = torch.isin(self.data[0], sample_tensor)
-        filtered_data = self.data[:, mask]
+            # Put random_sample on the same device as self.data
+            sample_tensor = torch.tensor(random_sample, device=self.device)
+            mask = torch.isin(self.data[0], sample_tensor)
+            filtered_data = self.data[:, mask]
 
-        return filtered_data, random_sample, list_pcp
+            return filtered_data, random_sample, list_pcp
 
     def data_matrix(self):
         data = self.full_data
