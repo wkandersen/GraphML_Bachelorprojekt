@@ -51,9 +51,9 @@ paper_t_field_train, paper_t_field_valid, paper_t_field_test, paper_t_field = pr
 author_w_paper_train, author_w_paper_valid, author_w_paper_test, author_w_paper = process_edges(
     data, ('author', 'writes', 'paper'), nums_train, nums_valid, nums_test,mask_position='target')
 
-nums_test_author = torch.tensor(author_w_paper_test[0].unique())
-nums_valid_author = torch.tensor(author_w_paper_valid[0].unique())
-nums_train_author = torch.tensor(author_w_paper_train[0].unique())
+nums_test_author = author_w_paper_test[0].unique().clone().detach()
+nums_valid_author = author_w_paper_valid[0].unique().clone().detach()
+nums_train_author = author_w_paper_train[0].unique().clone().detach()
 
 author_a_institution_train, author_a_institution_valid, author_a_institution_test, author_a_institution = process_edges(
     data, ('author', 'affiliated_with', 'institution'), nums_train_author, nums_valid_author, nums_test_author,mask_position='source')
