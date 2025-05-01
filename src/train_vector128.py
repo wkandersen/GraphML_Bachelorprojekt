@@ -8,13 +8,13 @@ torch.set_float32_matmul_precision('medium')
 # Training with PyTorch Lightning
 # --------------------------------
 
-X_train, y_train, X_valid, y_valid, X_test, y_test = prep_data()
+X_train, y_train, X_valid, y_valid, X_test, y_test, y = prep_data()
 
 data_module = VenueDataModule(X_train, y_train, X_valid, y_valid, X_test, y_test)
-model = VenueClassifier(input_dim=128, num_classes=349, lr=0.001)
+model = VenueClassifier(y, input_dim=128, num_classes=349, lr=0.001)
 if torch.cuda.is_available():
     print("Using GPU for training")
-trainer = pl.Trainer(max_epochs=20, accelerator="gpu", devices=1)  # Set accelerator to "gpu" if using CUDA
+trainer = pl.Trainer(max_epochs=10, accelerator="gpu", devices=1)  # Set accelerator to "gpu" if using CUDA
 trainer.fit(model, datamodule=data_module)
 
 # --------------------------------

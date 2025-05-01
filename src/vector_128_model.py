@@ -5,6 +5,8 @@ from torch.utils.data import DataLoader, TensorDataset
 import pytorch_lightning as pl
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
+from sklearn.utils.class_weight import compute_class_weight
 
 # Set working directory
 
@@ -64,9 +66,16 @@ class VenueDataModule(pl.LightningDataModule):
 # PyTorch Lightning Model
 # --------------------------------
 class VenueClassifier(pl.LightningModule):
-    def __init__(self, input_dim=128, num_classes=349, lr=0.001):
+    def __init__(self, y, input_dim=128, num_classes=349, lr=0.001):
         super().__init__()
         self.lr = lr
+        labels_y = y.flatten()
+        labels_y = y.cpu().numpy()
+        # Compute class weights
+        class_weights = compute_class_weight('balanced', classes=np.unique(labels_y.squeeze()), y=labels_y.squeeze())
+
+        # Convert to tensor for PyTorch
+        class_weights = torch.tensor(class_weights, dtype=torch.float32)
         self.model = nn.Sequential(
             nn.Linear(input_dim, 2048),
             nn.BatchNorm1d(2048),  # BatchNorm layer
@@ -80,8 +89,8 @@ class VenueClassifier(pl.LightningModule):
             nn.ReLU(),
             nn.Linear(512, num_classes)
         )
-        self.criterion = nn.CrossEntropyLoss(weight="balanced")
-        
+        self.criterion = nn.CrossEntropyLoss(weight=class_weights)
+
     def forward(self, x):
         return self.model(x)
 
