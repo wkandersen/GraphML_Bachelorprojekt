@@ -91,24 +91,59 @@ if not os.path.exists(f"dataset/ogbn_mag/processed/paper_embeddings_{embedding_d
     torch.save(paper_embeddings, f"dataset/ogbn_mag/processed/paper_embeddings_{embedding_dim}.pt")
 
 
-# paper = torch.load("dataset/ogbn_mag/processed/hpc/paper_dict_8.pt")
-# venue = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict_8.pt")
+import os
+import torch
+
+import torch
+
+collected_embeddings = {
+    'paper': {},
+    'venue': {}
+}
+
+embedding_dim = 8
+
+# Venue embeddings
+embed = torch.nn.Embedding(len(venues_values), embedding_dim)
+venue_id_to_idx = {venue_id.item(): idx for idx, venue_id in enumerate(venues_values)}
+
+indices = torch.tensor([venue_id_to_idx[venue_id.item()] for venue_id in venues_values], dtype=torch.long)
+embeddings = embed(indices).detach()
+
+for venue_id in venues_values:
+    collected_embeddings['venue'][venue_id.item()] = embeddings[venue_id_to_idx[venue_id.item()]]
+
+# Paper embeddings
+unique_paper_ids = torch.unique(paper_c_paper_train)
+embed = torch.nn.Embedding(len(unique_paper_ids), embedding_dim)
+paper_id_to_idx = {pid.item(): idx for idx, pid in enumerate(unique_paper_ids)}
+
+indices = torch.tensor([paper_id_to_idx[pid.item()] for pid in paper_c_paper_train.flatten()], dtype=torch.long)
+embeddings = embed(indices).detach()
+
+for pid, emb in zip(paper_c_paper_train.flatten(), embeddings):
+    collected_embeddings['paper'][pid.item()] = emb
+
+# Save the combined embeddings dictionary (if it's populated)
+if collected_embeddings:
+    torch.save(collected_embeddings, f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}.pt")
+    print("embeddings saved")
 
 
-# print(paper[53719])
-# print(venue)
+import torch
 
-# for key, tensor in paper.items():
-#     if tensor.shape[0] != 8:
-#         print(f"Paper {key} has shape {tensor.shape}")
+# Load the collected embeddings dictionary
+collected_embeddings = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_2.pt")
 
-# for key, tensor in venue.items():
-#     if tensor.shape[0] != 8:
-#         print(f"Venue {key} has shape {tensor.shape}")
+# Get the first 5 paper embeddings
+print("First 5 paper embeddings:")
+paper_embeddings = list(collected_embeddings['paper'].items())[:5]
+for paper_id, emb in paper_embeddings:
+    print(f"Paper ID: {paper_id}, Embedding: {emb}")
 
+# Get the first 5 venue embeddings
+print("\nFirst 5 venue embeddings:")
+venue_embeddings = list(collected_embeddings['venue'].items())[:5]
+for venue_id, emb in venue_embeddings:
+    print(f"Venue ID: {venue_id}, Embedding: {emb}")
 
-# all_embeddings = list(paper.values()) + list(venue.values())
-# for i, tensor in enumerate(all_embeddings):
-#     if tensor.shape[0] != 8:
-#         print(f"Entry {i} has shape {tensor.shape}")
-# print(f"Total entries: {len(all_embeddings)}")
