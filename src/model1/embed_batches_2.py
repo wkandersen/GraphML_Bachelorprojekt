@@ -24,7 +24,7 @@ print(f"Using device: {device}")
 print("starting")
 embedding_dim = 2
 # Load initial embeddings
-embed_dict = torch.load(f"dataset/ogbn_mag/processed/hpc/collected_embeddings_2.pt", map_location=device)
+embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_2.pt", map_location=device)
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
@@ -79,8 +79,8 @@ for i in range(num_epochs):
     for j in range(num_iterations):
 
         # Generate mini-batches
-        mini_b = mini_batches_code(paper_c_paper_train, l_prev, batch_size, ('paper', 'cites', 'paper'),data)
-        dm, l_next, random_sample = mini_b.datamatrix()
+        mini_b = mini_batches_code(paper_c_paper_train, l_prev, batch_size, ('paper', 'cites', 'paper'), data)
+        dm, l_next, random_sample = mini_b.data_matrix()
 
         # Move data to GPU
         dm = dm.to(device)
@@ -129,7 +129,7 @@ for i in range(num_epochs):
 
 
 for key in embed_dict:
-    embed_dict[key] = embed_dict[key].detach().clone().cpu()
+    embed_dict[key] = embed_dict[key].clone().cpu()
     embed_dict[key].requires_grad = False  # Ensure no gradients are tracked
 
 torch.save(embed_dict, f"dataset/ogbn_mag/processed/hpc/paper_dict_{embedding_dim}_{num_epochs}_epoch.pt")

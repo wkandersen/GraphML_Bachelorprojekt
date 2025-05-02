@@ -10,22 +10,14 @@ import wandb
 
 
 class NodeEmbeddingTrainer:
-    def __init__(self, dm, embed_dict, embedding_dim=8, num_epochs=10, lr=0.01, alpha=1, eps=1e-10, lam=0.01, device=None):        # Initialize input data, parameters, and setup
-        self.dm = dm
-        self.embed_dict = embed_dict
-        self.embedding_dim = embedding_dim
-        self.num_epochs = num_epochs
-        self.lr = lr
-        self.alpha = alpha
-        self.lam = lam
-        self.eps = eps
+    def __init__(self, device=None):        # Initialize input data, parameters, and setup
         self.device = device or torch.device("cpu")
 
         # Optimizers
-        self.optimizer = torch.optim.Adam([], lr=self.lr) # KOM TILBAGE
+        # self.optimizer = torch.optim.Adam([], lr=self.lr) # KOM TILBAGE
 
         # Loss function (assumed to be defined elsewhere)
-        self.loss_function = LossFunction(alpha=self.alpha, eps=self.eps, use_regularization=True, lam=self.lam)
+        # self.loss_function = LossFunction(alpha=self.alpha, eps=self.eps, use_regularization=True, lam=self.lam)
 
     def save_checkpoint(self, path):
         checkpoint = {
