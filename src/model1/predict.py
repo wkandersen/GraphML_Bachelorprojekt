@@ -11,8 +11,8 @@ from sklearn.metrics import confusion_matrix, classification_report
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict.pt", map_location=device, weights_only=False)
-venue_dict = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict.pt", map_location=device, weights_only=False)
+valid_dict = torch.load("dataset/ogbn_mag/processed/hpc/valid_dict_8.pt", map_location=device, weights_only=False)
+venue_dict = torch.load("dataset/ogbn_mag/processed/hpc/venue_dict_8.pt", map_location=device, weights_only=False)
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 predictions = {}
 

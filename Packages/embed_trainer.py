@@ -10,57 +10,14 @@ import wandb
 
 
 class NodeEmbeddingTrainer:
-    def __init__(self, dm, embed_dict, embedding_dim=8, num_epochs=10, lr=0.01, alpha=1, eps=1e-10, lam=0.01, device=None):        # Initialize input data, parameters, and setup
-        self.dm = dm
-        self.embed_dict = embed_dict
-        self.embedding_dim = embedding_dim
-        self.num_epochs = num_epochs
-        self.lr = lr
-        self.alpha = alpha
-        self.lam = lam
-        self.eps = eps
+    def __init__(self, device=None):        # Initialize input data, parameters, and setup
         self.device = device or torch.device("cpu")
 
         # Optimizers
-        self.optimizer = torch.optim.Adam([], lr=self.lr) # KOM TILBAGE
+        # self.optimizer = torch.optim.Adam([], lr=self.lr) # KOM TILBAGE
 
         # Loss function (assumed to be defined elsewhere)
-        self.loss_function = LossFunction(alpha=self.alpha, eps=self.eps, use_regularization=True, lam=self.lam)
-
-    def train(self):
-
-        best_loss = float('inf')
-        patience = 10  # Number of epochs to wait for improvement
-        min_delta = 1e-4  # Minimum change to qualify as an improvement
-        counter = 0  # Counts epochs with no significant improvement
-
-        for epoch in range(self.num_epochs):
-            self.optimizer.zero_grad()
-
-            loss = self.loss_function.compute_loss(self.embed_dict,self.dm)  # Compute loss
-
-            loss.backward()
-            self.optimizer.step()
-
-            wandb.log({"epoch_loss": loss.item(), "epoch": epoch})
-
-            if epoch % 10 == 0:
-                print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
-
-            # Early stopping logic
-            if best_loss - loss.item() > min_delta:
-                best_loss = loss.item()
-                counter = 0
-            else:
-                counter += 1
-
-            if counter >= patience:
-                print(f"Stopping early at epoch {epoch}. Loss has converged.")
-                break
-
-
-        return  self.embed_dict, loss.detach().item()
-
+        # self.loss_function = LossFunction(alpha=self.alpha, eps=self.eps, use_regularization=True, lam=self.lam)
 
     def save_checkpoint(self, path):
         checkpoint = {

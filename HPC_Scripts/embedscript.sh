@@ -4,9 +4,9 @@
 #BSUB -e HPC_outputs/ML_bachelor_%J.err
 #BSUB -q hpc
 #BSUB -R "span[hosts=1]"
-#BSUB -R "rusage[mem=4GB]"
+#BSUB -R "rusage[mem=3GB]"
 #BSUB -n 4
-#BSUB -W 1:00
+#BSUB -W 0:30
 #BSUB -B
 #BSUB -N
 #BSUB -u williamkirkandersen@gmail.com
