@@ -12,29 +12,32 @@ class mini_batches_code:
         self.device = self.data.device if isinstance(self.data, torch.Tensor) else torch.device("cpu")
 
     def get_batch(self):
-        if len(self.unique_list) < self.sample_size:
-            # Put random_sample on the same device as self.data
-            random_sample = self.unique_list
-            sample_tensor = torch.tensor(random_sample, device=self.device)
+        unique_list = self.unique_list  # Local reference to avoid repeated attribute access
+        
+        if len(unique_list) < self.sample_size:
+            # Case 1: Not enough samples remaining
+            random_sample = unique_list
+            sample_tensor = torch.as_tensor(random_sample, device=self.device)  # More efficient than torch.tensor
             mask = torch.isin(self.data[0], sample_tensor)
             filtered_data = self.data[:, mask]
             return filtered_data, random_sample, []
         else:
-            list_pcp = self.unique_list
-            random_sample = random.sample(list_pcp, self.sample_size)
-            print(random_sample)
-
-            for value in random_sample:
-                list_pcp.remove(value)
-
-            # Put random_sample on the same device as self.data
-            sample_tensor = torch.tensor(random_sample, device=self.device)
+            # Case 2: Normal sampling case
+            # Optimized random sampling without modifying the original list
+            random_sample = random.sample(unique_list, self.sample_size)
+            
+            # Create remaining list using set difference (faster than repeated remove())
+            remaining_list = list(set(unique_list) - set(random_sample))
+            
+            # Vectorized operations for filtering
+            sample_tensor = torch.as_tensor(random_sample, device=self.device)
             mask = torch.isin(self.data[0], sample_tensor)
             filtered_data = self.data[:, mask]
-
-            return filtered_data, random_sample, list_pcp
+            
+            return filtered_data, random_sample, remaining_list
 
     def data_matrix(self):
+        # Precompute constants and data
         data = self.full_data
         edge_entities = {
             'paper': 0,
@@ -43,65 +46,74 @@ class mini_batches_code:
             'field_of_study': 3,
             'venue': 4,
         }
-
+        
+        # Get batch data
         tensor, random_sample, unique_list = self.get_batch()
-
+        
+        # Initialize result tensor
         if tensor.shape[1] == 0:
-            result_tensor = torch.empty((0, 5), dtype=torch.long)
+            result_tensor = torch.empty((0, 5), dtype=torch.long, device=self.device)
         else:
+            # Vectorized creation of result tensor
+            edge_type1 = edge_entities[self.edge_type[0]]
+            edge_type2 = edge_entities[self.edge_type[2]]
+            ones = torch.ones(tensor.shape[1], device=self.device)
             result_tensor = torch.stack([
-                torch.tensor([1, tensor[0, i], tensor[1, i], edge_entities[self.edge_type[0]], edge_entities[self.edge_type[2]]])
-                for i in range(tensor.shape[1])
-            ])
+                ones,
+                tensor[0, :],
+                tensor[1, :],
+                torch.full((tensor.shape[1],), edge_type1, device=self.device),
+                torch.full((tensor.shape[1],), edge_type2, device=self.device)
+            ], dim=1).long()
 
-        non_edges, venues = [], []
-
+        # Prepare for non-edges and venues
+        non_edges = []
+        venues = []
+        
+        # Precompute unique targets and paper venues
+        unique_targets = tensor[1].unique() if tensor.shape[1] > 0 else torch.tensor([], device=self.device)
+        paper_venues = data['y_dict']['paper']
+        
+        # Create a set of existing edges for faster lookup
+        existing_edges = set()
+        if tensor.shape[1] > 0:
+            existing_edges = {(i.item(), j.item()) for i, j in zip(result_tensor[:, 1], result_tensor[:, 2])}
+        
+        # Generate non-edges and venues
         for i in random_sample:
+            # Add venue edges
             venues.append(torch.tensor(
-                [1, i, data['y_dict']['paper'][i], edge_entities[self.edge_type[0]], edge_entities['venue']],
+                [1, i, paper_venues[i], edge_entities[self.edge_type[0]], edge_entities['venue']],
                 device=self.device
             ))
-
-            for j in tensor[1].unique():
-                if i != j and not torch.any((result_tensor[:, 1] == i) & (result_tensor[:, 2] == j)):
+            
+            # Add non-edges
+            for j in unique_targets:
+                if i != j and (i.item(), j.item()) not in existing_edges:
                     non_edges.append(torch.tensor(
                         [0, i, j.item(), edge_entities[self.edge_type[0]], edge_entities[self.edge_type[2]]],
                         device=self.device
                     ))
-
-        for r, j in itertools.combinations(random_sample, 2):
-            if data['y_dict']['paper'][r] != data['y_dict']['paper'][j]:
-                venues.append(torch.tensor([0, r, data['y_dict']['paper'][j], edge_entities['paper'], edge_entities['venue']], device=self.device))
-                venues.append(torch.tensor([0, j, data['y_dict']['paper'][r], edge_entities['paper'], edge_entities['venue']], device=self.device))
-
+        
+        # Generate venue non-edges using vectorized operations where possible
+        for idx, (r, j) in enumerate(itertools.combinations(random_sample, 2)):
+            r_venue = paper_venues[r]
+            j_venue = paper_venues[j]
+            if r_venue != j_venue:
+                venues.append(torch.tensor(
+                    [0, r, j_venue, edge_entities['paper'], edge_entities['venue']],
+                    device=self.device
+                ))
+                venues.append(torch.tensor(
+                    [0, j, r_venue, edge_entities['paper'], edge_entities['venue']],
+                    device=self.device
+                ))
+        
+        # Stack non-edges and venues only once
         non_edges_tensor = torch.stack(non_edges) if non_edges else torch.empty((0, 5), dtype=torch.long, device=self.device)
         venues_tensor = torch.stack(venues) if venues else torch.empty((0, 5), dtype=torch.long, device=self.device)
-
+        
+        # Concatenate all tensors
         data_matrix = torch.cat((result_tensor, non_edges_tensor, venues_tensor), dim=0)
+        
         return data_matrix, unique_list, random_sample
-
-    def node_mapping(self):
-        datamatrix_tensor, ul, random_sample = self.data_matrix()
-
-        lm1 = torch.unique(torch.stack((datamatrix_tensor[:, 1], datamatrix_tensor[:, 3]), dim=1), dim=0)
-        lm2 = torch.unique(torch.stack((datamatrix_tensor[:, 2], datamatrix_tensor[:, 4]), dim=1), dim=0)
-        unique_global_node_ids = torch.unique(torch.cat([lm1, lm2], dim=0), dim=0)
-
-        node_mapping = {
-            (global_id.item(), type_id.item()): idx
-            for idx, (global_id, type_id) in enumerate(unique_global_node_ids)
-        }
-
-        remapped_datamatrix_tensor = datamatrix_tensor.clone()
-
-        remapped_datamatrix_tensor[:, 1] = torch.tensor([
-            node_mapping[(global_id.item(), type_id.item())]
-            for global_id, type_id in zip(datamatrix_tensor[:, 1], datamatrix_tensor[:, 3])
-        ], device=self.device)
-
-        remapped_datamatrix_tensor[:, 2] = torch.tensor([
-            node_mapping[(global_id.item(), type_id.item())]
-            for global_id, type_id in zip(datamatrix_tensor[:, 2], datamatrix_tensor[:, 4])
-        ], device=self.device)
-
-        return datamatrix_tensor, ul, remapped_datamatrix_tensor, random_sample

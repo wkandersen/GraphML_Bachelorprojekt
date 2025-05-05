@@ -87,6 +87,7 @@ for i in range(num_epochs):
     optimizer = torch.optim.Adam(params, lr=lr)
     loss_pr_iteration = []
 
+
     for j in range(num_iterations):
 
         # Generate mini-batches
@@ -104,7 +105,9 @@ for i in range(num_epochs):
         print(f"Loss: {loss.detach().item()}")
         # Update node list for the next iteration
         loss_pr_iteration.append(loss.detach().item())
+
         l_prev = l_next
+        
 
         if len(l_next) == 0:
             print("No more nodes to process. Exiting.")
@@ -132,8 +135,8 @@ for i in range(num_epochs):
 
         # Save checkpoint with both embeddings and optimizer state
         checkpoint = {
-            'collected_embeddings': embed_dict,  # Save the embeddings directly
-            'optimizer': optimizer.state_dict(),
+            'collected_embeddings': {group_key: {id_key: tensor.cpu() for id_key, tensor in group.items()} for group_key, group in embed_dict.items()},
+            'optimizer': optimizer.state_dict(),  # Save optimizer state as is
         }
 
         torch.save(checkpoint, checkpoint_path)  # Save full checkpoint
