@@ -21,12 +21,8 @@ class NodeEmbeddingTrainer:
 
     def save_checkpoint(self, path):
         checkpoint = {
-            'papernode_embeddings': self.papernode_embeddings.state_dict(),
-            'venuenode_embeddings': self.venuenode_embeddings.state_dict(),
+            'collected_embeddings': self.collected_embeddings.state_dict(),
             'optimizer': self.optimizer.state_dict(),
-            'venue_optimizer': self.venue_optimizer.state_dict(),
-            'specific_papernode_indices': self.specific_papernode_indices,
-            'specific_venuenode_indices': self.specific_venuenode_indices,
         }
         torch.save(checkpoint, path)
 
