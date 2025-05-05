@@ -17,6 +17,7 @@ eps = 0.001
 lam = 0.01
 batch_size = 1
 num_iterations = 10
+emb_dim = 2
 
 loss_function = LossFunction(alpha=alpha, eps=eps, use_regularization=False)
 
@@ -55,9 +56,12 @@ for i in range(num_iterations):
     mean_tensor = None
     count = 0
 
+if len(dm[:, 2].tolist()) < 2:
+    new_embedding = nn.Embedding(1,emb_dim)
+else:
     # Iterate over the elements in dm[:, 2]
     for i in dm[:, 2].tolist():
-        tensor_value = paper_dict['paper',i]  # Access the tensor from paper_dict
+        tensor_value = paper_dict['paper'][i]  # Access the tensor from paper_dict
         if mean_tensor is None:
             mean_tensor = tensor_value.clone()  # Initialize the mean_tensor with the first tensor
         else:
@@ -66,15 +70,15 @@ for i in range(num_iterations):
 
     # Compute the element-wise mean by dividing the accumulated sum by count
     mean_tensor /= count
-
+    
     new_embedding = nn.Parameter(mean_tensor)
 
     # Now mean_tensor holds the element-wise mean of all tensors
     print(f"Element-wise mean tensor: {mean_tensor}")
 
-    paper_dict['paper',random_sample[0]] = torch.nn.Parameter(new_embedding.clone().detach())
-    print(paper_dict['paper',random_sample[0]])
-    new_optimizer = torch.optim.Adam([paper_dict['paper',random_sample[0]]], lr=learning_rate)
+    paper_dict['paper'][random_sample[0]] = torch.nn.Parameter(new_embedding.clone().detach())
+    print(paper_dict['paper'][random_sample[0]])
+    new_optimizer = torch.optim.Adam([paper_dict['paper'][random_sample[0]]], lr=learning_rate)
 
     # Training loop for multiple samples
     for epoch in range(num_epochs):
@@ -93,7 +97,7 @@ for i in range(num_iterations):
     if epoch % 10 == 0:
         print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
 
-    print(paper_dict['paper',random_sample[0]])
+    print(paper_dict['paper'][random_sample[0]])
 
     l_prev = l_next
 
