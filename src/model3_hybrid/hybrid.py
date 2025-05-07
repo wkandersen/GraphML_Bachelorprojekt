@@ -26,9 +26,11 @@ print("starting")
 embedding_dim = 2
 # Load initial embeddings
 embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}.pt", map_location=device)
+hybrid_dict = torch.load(f"dataset/ogbn_mag/processed/hybrid_dict_{embedding_dim}.pt", map_location=device)
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
+X = data.x_dict[('paper')]
 
 saved_checkpoints = []
 max_saved = 2
@@ -54,9 +56,9 @@ alpha = args.alpha
 lam = args.lam
 
 
-num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
+# num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
 
-# num_iterations = 3
+num_iterations = 3
 
 print(f'Batch size: {args.batch_size}')
 print(f'Epochs: {args.epochs}')
@@ -100,12 +102,22 @@ for i in range(num_epochs):
         mini_b = mini_batches_code(paper_c_paper_train, l_prev, batch_size, ('paper', 'cites', 'paper'), data)
         dm, l_next, random_sample = mini_b.data_matrix()
 
+        dm = dm[dm[:,4]!=4]
+        combined_list = dm[:, 2].unique().tolist() + random_sample
+
+        print(random_sample[0])
+        print(embed_dict['paper'][random_sample[0]])
+        print(hybrid_dict['paper'][random_sample[0]])
+        
         # Move data to GPU
         dm = dm.to(device)
         optimizer.zero_grad()
-        loss = loss_function.compute_loss(embed_dict, dm)
+        loss = loss_function.compute_loss(hybrid_dict, dm)
         loss.backward()
         optimizer.step()
+
+        for idx in combined_list:
+            hybrid_dict['paper'][idx][:2].copy_(embed_dict['paper'][idx][:2])
         # Log loss to wandb
         wandb.log({"loss": loss.detach().item()}, step=j + 1)
         print(f"Loss: {loss.detach().item()}")
@@ -113,6 +125,9 @@ for i in range(num_epochs):
         loss_pr_iteration.append(loss.detach().item())
 
         l_prev = l_next
+
+        print(embed_dict['paper'][random_sample[0]])
+        print(hybrid_dict['paper'][random_sample[0]])
         
 
         if len(l_next) == 0:
