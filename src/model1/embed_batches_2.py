@@ -87,6 +87,12 @@ for i in range(num_epochs):
     optimizer = torch.optim.Adam(params, lr=lr)
     loss_pr_iteration = []
 
+    # import time
+    # start = time.time()
+    # dm, unique_list, random_sample = mini_b.data_matrix()
+    # print("Batch gen time:", time.time() - start)
+
+
 
     for j in range(num_iterations):
 
