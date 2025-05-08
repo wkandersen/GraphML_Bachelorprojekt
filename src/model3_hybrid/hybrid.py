@@ -116,8 +116,10 @@ for i in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        for idx in combined_list:
-            hybrid_dict['paper'][idx][:2].copy_(embed_dict['paper'][idx][:2])
+        with torch.no_grad():
+            for idx in combined_list:
+                hybrid_dict['paper'][idx][:2] = embed_dict['paper'][idx][:2]
+
         # Log loss to wandb
         wandb.log({"loss": loss.detach().item()}, step=j + 1)
         print(f"Loss: {loss.detach().item()}")
@@ -143,47 +145,47 @@ for i in range(num_epochs):
             gc.collect()
             torch.cuda.empty_cache()
 
-    if (i + 1) % save_every_iter == 0:
-        iter_id = i + 1
+#     if (i + 1) % save_every_iter == 0:
+#         iter_id = i + 1
 
-        os.makedirs("checkpoint", exist_ok=True)
+#         os.makedirs("checkpoint", exist_ok=True)
 
-        # Define paths
-        trainer_path = f"checkpoint/trainer_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        embed_path = f"checkpoint/embed_dict_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        l_prev_path = f"checkpoint/l_prev_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        checkpoint_path = f"checkpoint/checkpoint_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+#         # Define paths
+#         trainer_path = f"checkpoint/trainer_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+#         embed_path = f"checkpoint/embed_dict_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+#         l_prev_path = f"checkpoint/l_prev_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+#         checkpoint_path = f"checkpoint/checkpoint_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
 
-        # Save checkpoint with both embeddings and optimizer state
-        checkpoint = {
-            'collected_embeddings': {group_key: {id_key: tensor.cpu() for id_key, tensor in group.items()} for group_key, group in embed_dict.items()},
-            'optimizer': optimizer.state_dict(),  # Save optimizer state as is
-        }
+#         # Save checkpoint with both embeddings and optimizer state
+#         checkpoint = {
+#             'collected_embeddings': {group_key: {id_key: tensor.cpu() for id_key, tensor in group.items()} for group_key, group in embed_dict.items()},
+#             'optimizer': optimizer.state_dict(),  # Save optimizer state as is
+#         }
 
-        torch.save(checkpoint, checkpoint_path)  # Save full checkpoint
+#         torch.save(checkpoint, checkpoint_path)  # Save full checkpoint
 
-        # Save trainer and embeddings separately
-        N_emb.save_checkpoint(trainer_path)
-        torch.save(l_prev, l_prev_path)
+#         # Save trainer and embeddings separately
+#         N_emb.save_checkpoint(trainer_path)
+#         torch.save(l_prev, l_prev_path)
 
-        # Append checkpoint paths to track for cleanup
-        saved_checkpoints.append((trainer_path, embed_path, l_prev_path, checkpoint_path))
+#         # Append checkpoint paths to track for cleanup
+#         saved_checkpoints.append((trainer_path, embed_path, l_prev_path, checkpoint_path))
 
-        # Remove older checkpoints if more than max_saved
-        if len(saved_checkpoints) > max_saved:
-            old_files = saved_checkpoints.pop(0)  # Get the oldest checkpoint
-            for f in old_files:
-                if os.path.exists(f):
-                    os.remove(f)  # Delete the old checkpoint file
+#         # Remove older checkpoints if more than max_saved
+#         if len(saved_checkpoints) > max_saved:
+#             old_files = saved_checkpoints.pop(0)  # Get the oldest checkpoint
+#             for f in old_files:
+#                 if os.path.exists(f):
+#                     os.remove(f)  # Delete the old checkpoint file
     
-print(loss_pr_epoch)
+# print(loss_pr_epoch)
 
 
-for group_key in embed_dict:  # 'paper', 'venue'
-    for id_key in embed_dict[group_key]:
-        embed_dict[group_key][id_key] = embed_dict[group_key][id_key].detach().clone().cpu()
+# for group_key in embed_dict:  # 'paper', 'venue'
+#     for id_key in embed_dict[group_key]:
+#         embed_dict[group_key][id_key] = embed_dict[group_key][id_key].detach().clone().cpu()
 
-torch.save(embed_dict, f"dataset/ogbn_mag/processed/hpc/paper_dict_{embedding_dim}_{num_epochs}_epoch.pt")
+# torch.save(embed_dict, f"dataset/ogbn_mag/processed/hpc/paper_dict_{embedding_dim}_{num_epochs}_epoch.pt")
 
 
-print('Embed_batches done')
+print('Hybrid done')
