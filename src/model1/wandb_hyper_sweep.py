@@ -9,8 +9,8 @@ import numpy as np
 # Setup paths
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Packages.mini_batches import mini_batches_code
-from Packages.embed_trainer import NodeEmbeddingTrainer
 from Packages.data_divide import paper_c_paper_train
+from Packages.loss_function import LossFunction
 
 # Device setup
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -19,15 +19,11 @@ print(f"Using device: {device}")
 # Sweep configuration
 sweep_configuration = {
     "method": "random",  # Can also use "bayes"
-    "name": "lambda_alpha_sweep",
-    "metric": {"goal": "minimize", "name": "final_loss"},
+    "name": "test1",
+    "metric": {"goal": "minimize", "name": "loss"},
     "parameters": {
-        "batch_size": {"values": [100]},  # Must remain as list to avoid type issues
-        "num_epochs": {"values": [100]},
-        "lr": {"values": [0.01]},
+        "lam": {"values": [0,0.001, 0.01,0.1]},
         "alpha": {"values": [0.01,0.1,0.5,1]},
-        "lam": {"values": [0,0.001, 0.01,0.1,0.5]},
-        "num_iterations": {"values": [1500]},
     }
 }
 
@@ -43,48 +39,62 @@ def sweep_objective():
     run = wandb.init()
     config = wandb.config
 
+    loss_function = LossFunction(alpha=config.alpha,lam=config.lam)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    print("starting")
+    embedding_dim = 8
     # Load initial embeddings
-    embed_venue = torch.load("dataset/ogbn_mag/processed/venue_embeddings.pt", map_location=device)
-    embed_paper = torch.load("dataset/ogbn_mag/processed/paper_embeddings.pt", map_location=device)
+    embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}.pt", map_location=device)
     data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
-    # Clone dictionaries
-    paper_dict = {k: v.clone() for k, v in embed_paper.items()}
-    venue_dict = {k: v.clone() for k, v in embed_venue.items()}
+    batch_size = 200
+    num_epochs = 1
+    num_iterations = 750 #forhåbentlig 25% af datasættet
+    lr = 0.01
 
-    l_prev = list(paper_c_paper_train.unique().numpy())  # Initial node list
+    print(f'Batch_size: {batch_size}')
+    print(f'Num_epochs: {num_epochs}')
+    print(f'Num_iterations: {num_iterations}')
+    print(f'Embed_dim: {embed_dict}')
 
-    num_iterations = config.num_iterations  # Adjust as needed
-    for i in range(num_iterations):
-        print(f"Iteration {i+1}")
-        print(f"Config: {dict(config)}")
+    # batch_size = 10
+    # num_epochs = 1
+    # num_iterations = 5 #forhåbentlig 25% af datasættet
 
-        # Generate mini-batch
-        mini_b = mini_batches_code(paper_c_paper_train, l_prev, config.batch_size, ('paper', 'cites', 'paper'),data)
-        dm, l_next, remapped_datamatrix_tensor, _ = mini_b.node_mapping()
+    params = []
+    for subdict in embed_dict.values():
+        params.extend(subdict.values())
 
-        # Move data to device
-        dm = dm.to(device)
-        remapped_datamatrix_tensor = remapped_datamatrix_tensor.to(device)
+    for i in range(num_epochs):
+        print(f"Epoch {i + 1}/{num_epochs}")
+        l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
+        optimizer = torch.optim.Adam(params, lr=lr)
+        loss_pr_iteration = []
 
-        # Train
-        N_emb = NodeEmbeddingTrainer(
-            dm=dm,
-            remapped_datamatrix_tensor=remapped_datamatrix_tensor,
-            paper_dict=paper_dict,
-            venue_dict=venue_dict,
-            num_epochs=config.num_epochs,
-            lr=config.lr,
-            alpha=config.alpha,
-            lam=config.lam,
-            device=device
-        )
 
-        paper_dict, venue_dict, loss = N_emb.train()
-        l_prev = l_next
+        for j in range(num_iterations):
 
-        wandb.log({"final_loss": loss})
+            # Generate mini-batches
+            mini_b = mini_batches_code(paper_c_paper_train, l_prev, batch_size, ('paper', 'cites', 'paper'), data)
+            dm, l_next, random_sample = mini_b.data_matrix()
 
+            # Move data to GPU
+            dm = dm.to(device)
+            optimizer.zero_grad()
+            loss = loss_function.compute_loss(embed_dict, dm)
+            loss.backward()
+            optimizer.step()
+            # Log loss to wandb
+            wandb.log({"loss": loss.detach().item()}, step=j + 1)
+            print(f"Loss: {loss.detach().item()}")
+            # Update node list for the next iteration
+            loss_pr_iteration.append(loss.detach().item())
+
+            l_prev = l_next
+
+    
     run.finish()
 
 # Launch sweep

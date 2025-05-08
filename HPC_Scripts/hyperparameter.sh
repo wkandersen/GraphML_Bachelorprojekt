@@ -2,7 +2,7 @@
 #BSUB -J Graph_ML_Bachelor
 #BSUB -o HPC_outputs/sweep_lambda_alpha_%J.out
 #BSUB -e HPC_outputs/sweep_lambda_alpha_%J.err
-#BSUB -q gpuv100
+#BSUB -q gpua100
 #BSUB -R "span[hosts=1]"
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -R "rusage[mem=8GB]"
