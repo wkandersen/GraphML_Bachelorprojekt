@@ -32,7 +32,7 @@ data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", 
 
 saved_checkpoints = []
 max_saved = 2
-save_every_iter = 5
+save_every_iter = 1
 
 def get_args():
     parser = argparse.ArgumentParser(description='Training configuration')
@@ -134,21 +134,20 @@ for i in range(num_epochs):
         os.makedirs("checkpoint", exist_ok=True)
 
         # Define paths
-        trainer_path = f"checkpoint/trainer_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        embed_path = f"checkpoint/embed_dict_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        l_prev_path = f"checkpoint/l_prev_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        checkpoint_path = f"checkpoint/checkpoint_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+        trainer_path = f"checkpoint/trainer_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+        embed_path = f"checkpoint/embed_dict_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+        l_prev_path = f"checkpoint/l_prev_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+        checkpoint_path = f"checkpoint/checkpoint_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
 
         # Save checkpoint with both embeddings and optimizer state
         checkpoint = {
             'collected_embeddings': {group_key: {id_key: tensor.cpu() for id_key, tensor in group.items()} for group_key, group in embed_dict.items()},
-            'optimizer': optimizer.state_dict(),  # Save optimizer state as is
         }
 
         torch.save(checkpoint, checkpoint_path)  # Save full checkpoint
 
         # Save trainer and embeddings separately
-        N_emb.save_checkpoint(trainer_path)
+        # N_emb.save_checkpoint(trainer_path)
         torch.save(l_prev, l_prev_path)
 
         # Append checkpoint paths to track for cleanup
