@@ -25,9 +25,10 @@ for key in embed_dict:
     else:
                 # Concatenate embed with X and make it a leaf again
         for idx, embedding in embed_dict['paper'].items():
-                embed_tensor = embedding.to(device)
-                x_tensor = X[idx].to(device)
-                hybrid_dict['paper'][idx] = torch.cat((embed_tensor, x_tensor), -1)
+            embed_tensor = embedding.detach().clone().to(device)
+            x_tensor = X[idx].to(device)
+            hybrid_dict['paper'][idx] = torch.cat((embed_tensor, x_tensor), -1)
 
 
-torch.save(hybrid_dict, f"dataset/ogbn_mag/processed/hybrid_dict_{embedding_dim}.pt")
+
+torch.save(hybrid_dict, f"dataset/ogbn_mag/processed/hybrid_dict_{embedding_dim}_test.pt")

@@ -26,11 +26,26 @@ print("starting")
 embedding_dim = 2
 # Load initial embeddings
 embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}.pt", map_location=device)
-hybrid_dict = torch.load(f"dataset/ogbn_mag/processed/hybrid_dict_{embedding_dim}.pt", map_location=device)
+# hybrid_dict = torch.load(f"dataset/ogbn_mag/processed/hybrid_dict_{embedding_dim}_test.pt", map_location=device)
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
-X = data.x_dict[('paper')]
+X = data.x_dict[('paper')].to(device)
+
+hybrid_dict = {}
+
+for key in embed_dict:
+    hybrid_dict[key] = {}
+
+    if key == 'venue':
+        # Direct copy of venue embeddings
+        for idx, embedding in embed_dict[key].items():
+            hybrid_dict[key][idx] = embedding  # no clone, no concat
+    else:
+                # Concatenate embed with X and make it a leaf again
+        for idx, embedding in embed_dict['paper'].items():
+            hybrid_dict['paper'][idx] = torch.cat((embed_dict['paper'][idx], X[idx]), -1)
+
 
 saved_checkpoints = []
 max_saved = 2
@@ -56,9 +71,9 @@ alpha = args.alpha
 lam = args.lam
 
 
-# num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
+num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
 
-num_iterations = 3
+# num_iterations = 3
 
 print(f'Batch size: {args.batch_size}')
 print(f'Epochs: {args.epochs}')
@@ -68,7 +83,7 @@ print(f'Lambda: {args.lam}')
 
 run = wandb.init(
     project="Bachelor_projekt",
-    name=f"run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
+    name=f"hybrid_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
     config={
         "batch_size": batch_size,
         "num_epochs": num_epochs,
@@ -80,21 +95,18 @@ run = wandb.init(
 
 params = []
 for subdict in embed_dict.values():
-    params.extend(subdict.values())
+    for k, v in subdict.items():
+        if not v.requires_grad:
+            v.requires_grad = True
+        params.append(v)
 loss_pr_epoch = []
+
+optimizer = torch.optim.Adam(params, lr=lr)
 
 for i in range(num_epochs):
     print(f"Epoch {i + 1}/{num_epochs}")
     l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
-    optimizer = torch.optim.Adam(params, lr=lr)
     loss_pr_iteration = []
-
-    # import time
-    # start = time.time()
-    # dm, unique_list, random_sample = mini_b.data_matrix()
-    # print("Batch gen time:", time.time() - start)
-
-
 
     for j in range(num_iterations):
 
@@ -105,9 +117,10 @@ for i in range(num_epochs):
         dm = dm[dm[:,4]!=4]
         combined_list = dm[:, 2].unique().tolist() + random_sample
 
-        print(random_sample[0])
-        print(embed_dict['paper'][random_sample[0]])
-        print(hybrid_dict['paper'][random_sample[0]])
+        if j == 1 or j == 5:
+            print(random_sample[0])
+            print(embed_dict['paper'][random_sample[0]])
+            print(hybrid_dict['paper'][random_sample[0]])
         
         # Move data to GPU
         dm = dm.to(device)
@@ -116,9 +129,14 @@ for i in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        with torch.no_grad():
+        with torch.no_grad():  # Prevent this op from being tracked in autograd
             for idx in combined_list:
-                hybrid_dict['paper'][idx][:2] = embed_dict['paper'][idx][:2]
+                hybrid_dict['paper'][idx] = torch.cat((
+                    embed_dict['paper'][idx],  # This is being updated by optimizer
+                    X[idx]
+                ), dim=-1)
+
+
 
         # Log loss to wandb
         wandb.log({"loss": loss.detach().item()}, step=j + 1)
@@ -128,8 +146,9 @@ for i in range(num_epochs):
 
         l_prev = l_next
 
-        print(embed_dict['paper'][random_sample[0]])
-        print(hybrid_dict['paper'][random_sample[0]])
+        if j == 1 or j == 5:
+            print(embed_dict['paper'][random_sample[0]])
+            print(hybrid_dict['paper'][random_sample[0]])
         
 
         if len(l_next) == 0:
@@ -145,47 +164,23 @@ for i in range(num_epochs):
             gc.collect()
             torch.cuda.empty_cache()
 
-#     if (i + 1) % save_every_iter == 0:
-#         iter_id = i + 1
+    if (i + 1) % save_every_iter == 0:
+        iter_id = i + 1
 
-#         os.makedirs("checkpoint", exist_ok=True)
+        os.makedirs("checkpoint_hybrid", exist_ok=True)
+        embed_path = f"checkpoint_hybrid/embed_dict_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+        hybrid_path = f"checkpoint_hybrid/hybrid_dict_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
 
-#         # Define paths
-#         trainer_path = f"checkpoint/trainer_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-#         embed_path = f"checkpoint/embed_dict_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-#         l_prev_path = f"checkpoint/l_prev_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-#         checkpoint_path = f"checkpoint/checkpoint_iter_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+        torch.save(embed_dict,embed_path)
+        torch.save(hybrid_dict,hybrid_path)
 
-#         # Save checkpoint with both embeddings and optimizer state
-#         checkpoint = {
-#             'collected_embeddings': {group_key: {id_key: tensor.cpu() for id_key, tensor in group.items()} for group_key, group in embed_dict.items()},
-#             'optimizer': optimizer.state_dict(),  # Save optimizer state as is
-#         }
+        saved_checkpoints.append((embed_path,hybrid_path))
 
-#         torch.save(checkpoint, checkpoint_path)  # Save full checkpoint
-
-#         # Save trainer and embeddings separately
-#         N_emb.save_checkpoint(trainer_path)
-#         torch.save(l_prev, l_prev_path)
-
-#         # Append checkpoint paths to track for cleanup
-#         saved_checkpoints.append((trainer_path, embed_path, l_prev_path, checkpoint_path))
-
-#         # Remove older checkpoints if more than max_saved
-#         if len(saved_checkpoints) > max_saved:
-#             old_files = saved_checkpoints.pop(0)  # Get the oldest checkpoint
-#             for f in old_files:
-#                 if os.path.exists(f):
-#                     os.remove(f)  # Delete the old checkpoint file
-    
-# print(loss_pr_epoch)
-
-
-# for group_key in embed_dict:  # 'paper', 'venue'
-#     for id_key in embed_dict[group_key]:
-#         embed_dict[group_key][id_key] = embed_dict[group_key][id_key].detach().clone().cpu()
-
-# torch.save(embed_dict, f"dataset/ogbn_mag/processed/hpc/paper_dict_{embedding_dim}_{num_epochs}_epoch.pt")
-
+        # Remove older checkpoints if more than max_saved
+        if len(saved_checkpoints) > max_saved:
+            old_files = saved_checkpoints.pop(0)  # Get the oldest checkpoint
+            for f in old_files:
+                if os.path.exists(f):
+                    os.remove(f)  # Delete the old checkpoint file
 
 print('Hybrid done')
