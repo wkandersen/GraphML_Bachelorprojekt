@@ -101,10 +101,13 @@ collected_embeddings = {
     'venue': {}
 }
 
-embedding_dim = 8
-
+embedding_dim = 2
+a = -100
+b = -a
 # Venue embeddings
 embed = torch.nn.Embedding(len(venues_values), embedding_dim)
+torch.nn.init.uniform_(embed.weight, a, b)
+
 venue_id_to_idx = {venue_id.item(): idx for idx, venue_id in enumerate(venues_values)}
 
 indices = torch.tensor([venue_id_to_idx[venue_id.item()] for venue_id in venues_values], dtype=torch.long)
@@ -116,6 +119,7 @@ for venue_id in venues_values:
 # Paper embeddings
 unique_paper_ids = torch.unique(paper_c_paper_train)
 embed = torch.nn.Embedding(len(unique_paper_ids), embedding_dim)
+torch.nn.init.uniform_(embed.weight, a, b)
 paper_id_to_idx = {pid.item(): idx for idx, pid in enumerate(unique_paper_ids)}
 
 indices = torch.tensor([paper_id_to_idx[pid.item()] for pid in paper_c_paper_train.flatten()], dtype=torch.long)
@@ -126,12 +130,12 @@ for pid, emb in zip(paper_c_paper_train.flatten(), embeddings):
 
 # Save the combined embeddings dictionary (if it's populated)
 if collected_embeddings:
-    torch.save(collected_embeddings, f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}.pt")
+    torch.save(collected_embeddings, f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_{b}.pt")
     print("embeddings saved")
 
 
 # Load the collected embeddings dictionary
-collected_embeddings = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_2.pt")
+collected_embeddings = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_{b}.pt")
 
 # Get the first 5 paper embeddings
 print("First 5 paper embeddings:")
