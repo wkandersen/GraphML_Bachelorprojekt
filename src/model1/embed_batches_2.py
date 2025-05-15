@@ -22,13 +22,14 @@ def get_args():
 
     # Hyperparameters
     parser.add_argument('--batch_size', type=int, default=100, help='Batch size for training')
-    parser.add_argument('--epochs', type=int, default=1, help='Number of training epochs')
+    parser.add_argument('--epochs', type=int, default=10, help='Number of training epochs')
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate')
     parser.add_argument('--alpha', type=float, default=1, help='Alpha hyperparameter')
     parser.add_argument('--lam', type=float, default=0.001, help='Lambda hyperparameter')
     parser.add_argument('--embedding_dim', type=int, default=2, help='Embedding Dimensions')
 
     return parser.parse_args()
+
 
 args = get_args()
 
@@ -87,7 +88,6 @@ run = wandb.init(
         "lam": lam
     },
 )
-
 params = []
 for subdict in embed_dict.values():
     params.extend(subdict.values())
@@ -109,6 +109,7 @@ for i in range(num_epochs):
     for j in range(num_iterations):
         mini_b.set_unique_list(l_prev)  # Update only the node list
         dm, l_next, random_sample = mini_b.data_matrix()
+        # print(dm)
 
     # for j in range(num_iterations):
 
@@ -183,7 +184,7 @@ for group_key in embed_dict:  # 'paper', 'venue'
     for id_key in embed_dict[group_key]:
         embed_dict[group_key][id_key] = embed_dict[group_key][id_key].detach().clone().cpu()
 
-torch.save(embed_dict, f"dataset/ogbn_mag/processed/hpc/paper_dict_{embedding_dim}_{num_epochs}_epoch.pt")
+torch.save(embed_dict, f"dataset/ogbn_mag/processed/hpc/paper_dict_{batch_size}_{embedding_dim}_{num_epochs}_epoch.pt")
 
 
 print('Embed_batches done')
