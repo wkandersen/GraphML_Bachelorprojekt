@@ -1,7 +1,7 @@
 import torch
 
 class LossFunction:
-    def __init__(self, alpha=1.0, eps=1e-8, use_regularization=False, lam=0.01):
+    def __init__(self, alpha=1.0, eps=1e-8, use_regularization=False, lam=0.01, weight = 1.0):
         """
         Initialize the loss function with given parameters.
         
@@ -14,6 +14,7 @@ class LossFunction:
         self.eps = eps
         self.use_regularization = use_regularization
         self.lam = lam
+        self.weight = weight
 
     def edge_probability(self, z_i, z_j):
         """Compute the probability of an edge existing between two embeddings."""
@@ -27,11 +28,11 @@ class LossFunction:
         prob = torch.clamp(prob, self.eps, 1 - self.eps)  # Numerical stability
 
         # Compute the loss for each edge
-        return label * torch.log(prob) + (1 - label) * torch.log(1 - prob)
+        return label * torch.log(prob) + self.weight * (1 - label) * torch.log(1 - prob)
 
     def compute_loss(self, z, datamatrix_tensor):
         """Compute the total loss for the dataset."""
-        # Extract labels, u_idx, and v_idx in a vectorized way
+        # Extract labels, u_idx, and v_idx in a vectorized way 
         labels = datamatrix_tensor[:, 0].float()
         u_idx = datamatrix_tensor[:, 1].long()
         v_idx = datamatrix_tensor[:, 2].long()
@@ -59,12 +60,15 @@ class LossFunction:
         # Compute link loss for all edges in the batch
         link_loss = self.link_loss(labels, z_u, z_v)  # shape (B,)
 
+
+
+
         # Mean loss over the batch
         loss = -torch.mean(link_loss)
-
         # Optionally add regularization
         if self.use_regularization:
-            regularization = self.lam * torch.sum(z ** 2)
+
+            regularization = self.lam * (torch.sum(z_u ** 2) + torch.sum(z_v ** 2))
             loss += regularization
 
         return loss
