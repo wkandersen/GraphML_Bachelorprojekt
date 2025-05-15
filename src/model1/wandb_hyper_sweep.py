@@ -24,6 +24,7 @@ sweep_configuration = {
     "parameters": {
         "lam": {"values": [0,0.001, 0.01,0.1]},
         "alpha": {"values": [0.01,0.1,0.5,1]},
+        "lr": {"values": [0.1,0.01]},
     }
 }
 
@@ -52,7 +53,6 @@ def sweep_objective():
     batch_size = 200
     num_epochs = 1
     num_iterations = 750 #forhåbentlig 25% af datasættet
-    lr = 0.01
 
     print(f'Batch_size: {batch_size}')
     print(f'Num_epochs: {num_epochs}')
@@ -70,7 +70,7 @@ def sweep_objective():
     for i in range(num_epochs):
         print(f"Epoch {i + 1}/{num_epochs}")
         l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
-        optimizer = torch.optim.Adam(params, lr=lr)
+        optimizer = torch.optim.Adam(params, lr=config.lr)
         loss_pr_iteration = []
 
 
@@ -87,7 +87,7 @@ def sweep_objective():
             loss.backward()
             optimizer.step()
             # Log loss to wandb
-            wandb.log({"loss": loss.detach().item()}, step=j + 1)
+            wandb.log({"loss": loss.detach().item()})
             print(f"Loss: {loss.detach().item()}")
             # Update node list for the next iteration
             loss_pr_iteration.append(loss.detach().item())

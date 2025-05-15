@@ -18,7 +18,8 @@ class LossFunction:
     def edge_probability(self, z_i, z_j):
         """Compute the probability of an edge existing between two embeddings."""
         dist_sq = torch.sum((z_i - z_j) ** 2, dim=1)  # Squared Euclidean distance (batch-wise)
-        return 1 / (1 + torch.exp(-self.alpha + dist_sq))  # Logistic function, element-wise
+        # return 1 / (1 + torch.exp(-self.alpha + dist_sq))  # Logistic function, element-wise
+        return torch.sigmoid(-dist_sq + self.alpha)
 
     def link_loss(self, label, z_u, z_v):
         """Compute the loss for a single edge."""

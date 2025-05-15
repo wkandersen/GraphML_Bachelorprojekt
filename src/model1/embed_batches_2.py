@@ -4,7 +4,8 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from Packages.mini_batches import mini_batches_code
+# from Packages.mini_batches import mini_batches_code
+from src.mini_batches_fast import mini_batches_fast
 from Packages.data_divide import paper_c_paper_train
 from Packages.loss_function import LossFunction
 from Packages.embed_trainer import NodeEmbeddingTrainer
@@ -13,7 +14,30 @@ import wandb
 from datetime import datetime
 import argparse
 import numpy as np
+from collections import defaultdict
 
+
+def get_args():
+    parser = argparse.ArgumentParser(description='Training configuration')
+
+    # Hyperparameters
+    parser.add_argument('--batch_size', type=int, default=100, help='Batch size for training')
+    parser.add_argument('--epochs', type=int, default=1, help='Number of training epochs')
+    parser.add_argument('--lr', type=float, default=0.01, help='Learning rate')
+    parser.add_argument('--alpha', type=float, default=1, help='Alpha hyperparameter')
+    parser.add_argument('--lam', type=float, default=0.001, help='Lambda hyperparameter')
+    parser.add_argument('--embedding_dim', type=int, default=2, help='Embedding Dimensions')
+
+    return parser.parse_args()
+
+args = get_args()
+
+batch_size = args.batch_size
+num_epochs = args.epochs
+lr = args.lr
+alpha = args.alpha
+lam = args.lam
+embedding_dim = args.embedding_dim
 
 wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
 
@@ -23,46 +47,34 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 print("starting")
-embedding_dim = 2
+
 # Load initial embeddings
 embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}.pt", map_location=device)
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
 
+citation_dict = defaultdict(list)
+for src, tgt in zip(paper_c_paper_train[0], paper_c_paper_train[1]):
+    citation_dict[src.item()].append(tgt.item())
+
+all_papers = list(citation_dict.keys())
+
+
 saved_checkpoints = []
 max_saved = 2
 save_every_iter = 1
 
-def get_args():
-    parser = argparse.ArgumentParser(description='Training configuration')
+# num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
 
-    # Hyperparameters
-    parser.add_argument('--batch_size', type=int, default=100, help='Batch size for training')
-    parser.add_argument('--epochs', type=int, default=10, help='Number of training epochs')
-    parser.add_argument('--lr', type=float, default=0.01, help='Learning rate')
-    parser.add_argument('--alpha', type=float, default=1, help='Alpha hyperparameter')
-    parser.add_argument('--lam', type=float, default=0.001, help='Lambda hyperparameter')
-
-    return parser.parse_args()
-
-args = get_args()
-batch_size = args.batch_size
-num_epochs = args.epochs
-lr = args.lr
-alpha = args.alpha
-lam = args.lam
-
-
-num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
-
-# num_iterations = 3
+num_iterations = 2
 
 print(f'Batch size: {args.batch_size}')
 print(f'Epochs: {args.epochs}')
 print(f'Learning rate: {args.lr}')
 print(f'Alpha: {args.alpha}')
 print(f'Lambda: {args.lam}')
+print(f'Embedding dim: {embedding_dim}')
 
 run = wandb.init(
     project="Bachelor_projekt",
@@ -92,13 +104,17 @@ for i in range(num_epochs):
     # dm, unique_list, random_sample = mini_b.data_matrix()
     # print("Batch gen time:", time.time() - start)
 
-
+    mini_b = mini_batches_fast(paper_c_paper_train, l_prev, batch_size, ('paper', 'cites', 'paper'), data, citation_dict, all_papers)
 
     for j in range(num_iterations):
+        mini_b.set_unique_list(l_prev)  # Update only the node list
+        dm, l_next, random_sample = mini_b.data_matrix()
+
+    # for j in range(num_iterations):
 
         # Generate mini-batches
-        mini_b = mini_batches_code(paper_c_paper_train, l_prev, batch_size, ('paper', 'cites', 'paper'), data)
-        dm, l_next, random_sample = mini_b.data_matrix()
+        # mini_b = mini_batches_fast(paper_c_paper_train, l_prev, batch_size, ('paper', 'cites', 'paper'), data)
+        # dm, l_next, random_sample = mini_b.data_matrix()
 
         # Move data to GPU
         dm = dm.to(device)
@@ -107,7 +123,7 @@ for i in range(num_epochs):
         loss.backward()
         optimizer.step()
         # Log loss to wandb
-        wandb.log({"loss": loss.detach().item()}, step=j + 1)
+        wandb.log({"loss": loss.detach().item()})
         print(f"Loss: {loss.detach().item()}")
         # Update node list for the next iteration
         loss_pr_iteration.append(loss.detach().item())
@@ -119,7 +135,7 @@ for i in range(num_epochs):
             print("No more nodes to process. Exiting.")
             print(loss_pr_iteration)
             loss_pr_epoch.append(np.mean(loss_pr_iteration))
-            wandb.log({"loss_epoch": loss_pr_epoch[i]}, step=i+1)
+            wandb.log({"loss_epoch": loss_pr_epoch[i]})
             break
 
         # Cleanup
