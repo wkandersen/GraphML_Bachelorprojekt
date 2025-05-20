@@ -38,13 +38,13 @@ args = get_args()
 
 batch_size = args.batch_size
 num_epochs = args.epochs
-lr = args.lr
+lr = args.lr 
 alpha = args.alpha
 lam = args.lam
 embedding_dim = args.embedding_dim
 weight = args.weight
 iterations = args.iterations
-venue_weight = 100
+venue_weight = args.venue_weight
 
 wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
 loss_function = LossFunction(alpha=alpha, lam=lam, weight=weight,venue_weight=venue_weight)
