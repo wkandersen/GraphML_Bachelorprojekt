@@ -27,6 +27,8 @@ def get_args():
     parser.add_argument('--alpha', type=float, default=1, help='Alpha hyperparameter')
     parser.add_argument('--lam', type=float, default=0.001, help='Lambda hyperparameter')
     parser.add_argument('--embedding_dim', type=int, default=2, help='Embedding Dimensions')
+    parser.add_argument('--weight', type=float, default = 1.0, help = "Weight for non-edges")
+    parser.add_argument('--iterations', type=bool, default=True, help = 'Number of iterations')
 
     return parser.parse_args()
 
@@ -39,10 +41,12 @@ lr = args.lr
 alpha = args.alpha
 lam = args.lam
 embedding_dim = args.embedding_dim
+weight = args.weight
+iterations = args.iterations
 
 wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
 
-loss_function = LossFunction()
+loss_function = LossFunction(weight=weight)
 N_emb = NodeEmbeddingTrainer()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -50,7 +54,7 @@ print(f"Using device: {device}")
 print("starting")
 
 # Load initial embeddings
-embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}.pt", map_location=device)
+embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_50.pt", map_location=device)
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
@@ -66,16 +70,18 @@ saved_checkpoints = []
 max_saved = 2
 save_every_iter = 1
 
-# num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
-
-num_iterations = 2
+if iterations == True:
+    num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
+else:
+    num_iterations = 75
 
 print(f'Batch size: {args.batch_size}')
 print(f'Epochs: {args.epochs}')
 print(f'Learning rate: {args.lr}')
 print(f'Alpha: {args.alpha}')
 print(f'Lambda: {args.lam}')
-print(f'Embedding dim: {embedding_dim}')
+print(f'Embedding dim: {args.embedding_dim}')
+print(f'Weight: {args.weight}')
 
 run = wandb.init(
     project="Bachelor_projekt",
@@ -85,7 +91,8 @@ run = wandb.init(
         "num_epochs": num_epochs,
         "lr": lr,
         "alpha": alpha,
-        "lam": lam
+        "lam": lam,
+        "weight": weight
     },
 )
 params = []
