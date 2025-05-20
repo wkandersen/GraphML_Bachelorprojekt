@@ -45,8 +45,7 @@ weight = args.weight
 iterations = args.iterations
 
 wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
-
-loss_function = LossFunction(weight=weight)
+loss_function = LossFunction(alpha=alpha, lam=lam, weight=weight)
 N_emb = NodeEmbeddingTrainer()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -95,15 +94,25 @@ run = wandb.init(
         "weight": weight
     },
 )
-params = []
-for subdict in embed_dict.values():
-    params.extend(subdict.values())
-loss_pr_epoch = []
 
+for entity_type, subdict in embed_dict.items():
+    for key, tensor in subdict.items():
+        param = torch.nn.Parameter(tensor.to(device), requires_grad=True)
+        # Scale down from large initial range to prevent vanishing gradients
+        param.data /= 100.0
+        embed_dict[entity_type][key] = param
+
+params = []
+for group in embed_dict.values():  # e.g., embed_dict['paper'], embed_dict['venue']
+    for param in group.values():   # e.g., embed_dict['paper'][123]
+        params.append(param)
+
+optimizer = torch.optim.Adam(params, lr=lr)
+
+loss_pr_epoch = []
 for i in range(num_epochs):
     print(f"Epoch {i + 1}/{num_epochs}")
     l_prev = list(paper_c_paper_train.unique().numpy())  # Initial list of nodes
-    optimizer = torch.optim.Adam(params, lr=lr)
     loss_pr_iteration = []
 
     # import time
@@ -129,6 +138,7 @@ for i in range(num_epochs):
         optimizer.zero_grad()
         loss = loss_function.compute_loss(embed_dict, dm)
         loss.backward()
+        # print(embed_dict)
         optimizer.step()
         # Log loss to wandb
         wandb.log({"loss": loss.detach().item()})
