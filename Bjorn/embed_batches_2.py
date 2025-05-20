@@ -66,9 +66,9 @@ saved_checkpoints = []
 max_saved = 2
 save_every_iter = 1
 
-# num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
+num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
 
-num_iterations = 2
+# num_iterations = 2
 
 print(f'Batch size: {args.batch_size}')
 print(f'Epochs: {args.epochs}')
