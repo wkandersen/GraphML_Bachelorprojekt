@@ -29,6 +29,7 @@ def get_args():
     parser.add_argument('--embedding_dim', type=int, default=2, help='Embedding Dimensions')
     parser.add_argument('--weight', type=float, default = 1.0, help = "Weight for non-edges")
     parser.add_argument('--iterations', type=bool, default=True, help = 'Number of iterations')
+    parser.add_argument('--venue_weight', type=float, default = 1.0, help = "Weight for venue_edges")
 
     return parser.parse_args()
 
@@ -37,15 +38,16 @@ args = get_args()
 
 batch_size = args.batch_size
 num_epochs = args.epochs
-lr = args.lr
+lr = args.lr 
 alpha = args.alpha
 lam = args.lam
 embedding_dim = args.embedding_dim
 weight = args.weight
 iterations = args.iterations
+venue_weight = args.venue_weight
 
 wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
-loss_function = LossFunction(alpha=alpha, lam=lam, weight=weight)
+loss_function = LossFunction(alpha=alpha, lam=lam, weight=weight,venue_weight=venue_weight)
 N_emb = NodeEmbeddingTrainer()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -91,7 +93,8 @@ run = wandb.init(
         "lr": lr,
         "alpha": alpha,
         "lam": lam,
-        "weight": weight
+        "weight": weight,
+        "venue_weight": venue_weight
     },
 )
 
