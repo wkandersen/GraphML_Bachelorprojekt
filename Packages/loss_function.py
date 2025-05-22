@@ -1,7 +1,7 @@
 import torch
 
 class LossFunction:
-    def __init__(self, alpha=1.0, eps=1e-8, use_regularization=False, lam=0.01, weight=1.0, venue_weight=1.5):
+    def __init__(self, alpha=1.0, lam=0.01, weight=1.0, venue_weight=1.5, eps=1e-8, use_regularization=False):
         """
         Initialize the loss function with given parameters.
         
@@ -13,6 +13,7 @@ class LossFunction:
             weight (float): Weight for negative samples.
             venue_weight (float): Additional weight for edges involving a 'venue' entity.
         """
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.alpha = alpha
         self.eps = eps
         self.use_regularization = use_regularization
@@ -37,13 +38,35 @@ class LossFunction:
 
         return weighted_loss
 
-    def compute_loss(self, z, datamatrix_tensor):
+    def compute_loss(self, z, datamatrix_tensor, neg_ratio=10):
         """Compute the total loss for the dataset."""
         labels = datamatrix_tensor[:, 0].float()
         u_idx = datamatrix_tensor[:, 1].long()
         v_idx = datamatrix_tensor[:, 2].long()
         pv1_idx = datamatrix_tensor[:, 3].long()
         pv2_idx = datamatrix_tensor[:, 4].long()
+
+        # 2. Select all positive and sample some negatives
+        pos_mask = labels == 1
+        neg_mask = labels == 0
+
+        pos_indices = pos_mask.nonzero(as_tuple=False).squeeze()
+        neg_indices = neg_mask.nonzero(as_tuple=False).squeeze()
+
+        num_pos = pos_indices.numel()
+        num_neg_sample = min(neg_indices.numel(), num_pos * neg_ratio)
+
+        sampled_neg_indices = neg_indices[torch.randperm(neg_indices.numel(), device=labels.device)[:num_neg_sample]]
+
+        keep_indices = torch.cat([pos_indices, sampled_neg_indices])
+
+        # 3. Filter data using selected indices
+        labels = labels[keep_indices]
+        u_idx = u_idx[keep_indices]
+        v_idx = v_idx[keep_indices]
+        pv1_idx = pv1_idx[keep_indices]     
+        pv2_idx = pv2_idx[keep_indices]
+
 
         edge_entities = {
             0: 'paper',
