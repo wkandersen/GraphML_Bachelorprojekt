@@ -1,7 +1,7 @@
 import torch
 
 class LossFunction:
-    def __init__(self, alpha=1.0, eps=1e-8, use_regularization=False, lam=0.01, weight=1.0, venue_weight=1.5):
+    def __init__(self, alpha=1.0, lam=0.01, weight=1.0, venue_weight=1.5, eps=1e-8, use_regularization=False):
         """
         Initialize the loss function with given parameters.
         
