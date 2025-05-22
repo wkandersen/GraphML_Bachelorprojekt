@@ -145,7 +145,7 @@ for i in range(num_epochs):
         optimizer.step()
         # Log loss to wandb
         wandb.log({"loss": loss.detach().item()})
-        print(f"Loss: {loss.detach().item()}")
+        # print(f"Loss: {loss.detach().item()}")
         # Update node list for the next iteration
         loss_pr_iteration.append(loss.detach().item())
 
@@ -154,9 +154,10 @@ for i in range(num_epochs):
 
         if len(l_next) == 0:
             print("No more nodes to process. Exiting.")
-            print(loss_pr_iteration)
+            # print(loss_pr_iteration)
             loss_pr_epoch.append(np.mean(loss_pr_iteration))
-            wandb.log({"loss_epoch": loss_pr_epoch[i]})
+            wandb.log({"mean_loss_epoch": loss_pr_epoch[i]})
+            print(loss_pr_epoch[i])
             break
 
         # Cleanup
@@ -174,7 +175,7 @@ for i in range(num_epochs):
         trainer_path = f"checkpoint/trainer_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
         embed_path = f"checkpoint/embed_dict_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
         l_prev_path = f"checkpoint/l_prev_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        checkpoint_path = f"checkpoint/checkpoint_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
+        checkpoint_path = f"checkpoint/checkpoint_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}_weight_{weight}.pt"
 
         # Save checkpoint with both embeddings and optimizer state
         checkpoint = {
@@ -188,14 +189,13 @@ for i in range(num_epochs):
         torch.save(l_prev, l_prev_path)
 
         # Append checkpoint paths to track for cleanup
-        saved_checkpoints.append((trainer_path, embed_path, l_prev_path, checkpoint_path))
+        saved_checkpoints.append(checkpoint_path)
 
         # Remove older checkpoints if more than max_saved
         if len(saved_checkpoints) > max_saved:
             old_files = saved_checkpoints.pop(0)  # Get the oldest checkpoint
-            for f in old_files:
-                if os.path.exists(f):
-                    os.remove(f)  # Delete the old checkpoint file
+            if os.path.exists(old_files):
+                os.remove(old_files)  # Delete the old checkpoint file
     
 print(loss_pr_epoch)
 
