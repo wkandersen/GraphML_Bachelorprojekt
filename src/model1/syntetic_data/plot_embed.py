@@ -1,6 +1,6 @@
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-def plot_paper_venue_embeddings(venue_value, embed_dict, sample_size=1000, filename=None, dim=2):
+def plot_paper_venue_embeddings(venue_value, embed_dict, sample_size=1000, filename=None, dim=2, top=1):
     """
     Plots 2D projection of paper and venue embeddings, using PCA if original dim > 2.
 
@@ -60,7 +60,7 @@ def plot_paper_venue_embeddings(venue_value, embed_dict, sample_size=1000, filen
             continue
 
         dists = np.linalg.norm(venue_points - paper_vec, axis=1)
-        nearest_indices = np.argsort(dists)[:1]
+        nearest_indices = np.argsort(dists)[:top]
         nearest_venues = [venue_ids[i] for i in nearest_indices]
 
 
@@ -79,7 +79,7 @@ def plot_paper_venue_embeddings(venue_value, embed_dict, sample_size=1000, filen
     scatter = plt.scatter(
         paper_points[mask, 0], paper_points[mask, 1],
         c=paper_colors[mask], s=2, alpha=0.6,
-        cmap='tab20', label='Papers (true venue in top 1)'
+        cmap='tab20', label=f'Papers (true venue in top {top})'
     )
 
     if np.any(paper_colors == -1):
@@ -117,4 +117,4 @@ def plot_paper_venue_embeddings(venue_value, embed_dict, sample_size=1000, filen
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device)
 check = torch.load("checkpoint/checkpoint_venue_weight_iter_64_2_5_epoch_4.pt",map_location=device)
 embed_dict = check['collected_embeddings']
-plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=embed_dict,filename='plot_embeddings')
+plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=embed_dict,filename='plot_embeddings',top=5)
