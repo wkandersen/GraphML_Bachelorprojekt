@@ -1,7 +1,23 @@
 import torch
+def set_seed(seed=42):
+    import random
+    import numpy as np
+    import torch
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+set_seed(42)
+
 ### paper_c_paper_train
 num_papers = 200     # total number of papers (IDs from 0 to 749999)
-num_edges = 1000        # number of citation edges
+num_edges = 300        # number of citation edges
+embedding_dim = 2
+a = -1
+b = -a
 
 # Randomly generate citing and cited paper IDs
 citing = torch.randint(0, num_papers, (num_edges,))
@@ -48,10 +64,6 @@ collected_embeddings = {
     'paper': {},
     'venue': {}
 }
-
-embedding_dim = 2
-a = -100
-b = -a
 # Venue embeddings
 embed = torch.nn.Embedding(len(venues_values), embedding_dim)
 torch.nn.init.uniform_(embed.weight, a, b)
