@@ -47,7 +47,7 @@ iterations = args.iterations
 venue_weight = args.venue_weight
 
 wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
-loss_function = LossFunction(alpha=alpha, lam=lam, weight=weight,venue_weight=venue_weight)
+loss_function = LossFunction(alpha=alpha, lam=lam, weight=weight, venue_weight=venue_weight)
 N_emb = NodeEmbeddingTrainer()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -55,10 +55,11 @@ print(f"Using device: {device}")
 print("starting")
 
 # Load initial embeddings
-embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_50.pt", map_location=device)
+embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}.pt", map_location=device)
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
+# embed_dict = embed_dict['collected_embeddings']
 
 citation_dict = defaultdict(list)
 for src, tgt in zip(paper_c_paper_train[0], paper_c_paper_train[1]):
@@ -72,7 +73,10 @@ max_saved = 2
 save_every_iter = 1
 
 if iterations == True:
-    num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
+    try:
+        num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper'])) # we need to be able to look at the complete dataset
+    except:
+        num_iterations = int(len(embed_dict['venue']) + len(embed_dict['paper']))
 else:
     num_iterations = 75
 
@@ -86,7 +90,7 @@ print(f'Weight: {args.weight}')
 
 run = wandb.init(
     project="Bachelor_projekt",
-    name=f"run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
+    name=f"run_{datetime.now():%Y-%m-%d_%H-%M-%S}, {embedding_dim} and {venue_weight}",
     config={
         "batch_size": batch_size,
         "num_epochs": num_epochs,
@@ -180,6 +184,7 @@ for i in range(num_epochs):
         # Save checkpoint with both embeddings and optimizer state
         checkpoint = {
             'collected_embeddings': {group_key: {id_key: tensor.cpu() for id_key, tensor in group.items()} for group_key, group in embed_dict.items()},
+            'optimizer_state': optimizer.state_dict()
         }
 
         torch.save(checkpoint, checkpoint_path)  # Save full checkpoint
@@ -204,7 +209,7 @@ for group_key in embed_dict:  # 'paper', 'venue'
     for id_key in embed_dict[group_key]:
         embed_dict[group_key][id_key] = embed_dict[group_key][id_key].detach().clone().cpu()
 
-torch.save(embed_dict, f"dataset/ogbn_mag/processed/hpc/paper_dict_{batch_size}_{embedding_dim}_{num_epochs}_epoch.pt")
+torch.save(embed_dict, f"dataset/ogbn_mag/processed/hpc/paper_dict_{batch_size}_{embedding_dim}_dim_{num_epochs}_epoch.pt")
 
 
 print('Embed_batches done')
