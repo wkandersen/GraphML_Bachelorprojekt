@@ -43,54 +43,6 @@ paper_c_paper_test = paper_c_paper_test[:, mask_test]
 #Venues
 venues_values = torch.unique(data['y_dict']['paper'])
 
-# len(paper_c_paper_train[1]) + len(paper_c_paper_valid[1]) + len(paper_c_paper_test[1]), paper_c_paper.shape[1]
-
-# embedding_dim = 2
-
-# if not os.path.exists(f"dataset/ogbn_mag/processed/venue_embeddings_{embedding_dim}.pt"):
-#     venue_embeddings = {}
-
-#     embed = torch.nn.Embedding(len(venues_values), embedding_dim)
-
-#     venue_id_to_idx = {venue_id.item(): idx for idx, venue_id in enumerate(venues_values)}
-
-#     indices = torch.tensor([venue_id_to_idx[venue_id.item()] for venue_id in venues_values], dtype=torch.long)
-
-#     embeddings = embed(indices)
-
-#     venue_embeddings = {venue_id.item(): embeddings[venue_id_to_idx[venue_id.item()]] for venue_id in venues_values}
-
-#     # Save the embeddings to a file
-#     torch.save(venue_embeddings, f"dataset/ogbn_mag/processed/venue_embeddings_{embedding_dim}.pt")
-
-
-
-
-
-# if not os.path.exists(f"dataset/ogbn_mag/processed/paper_embeddings_{embedding_dim}.pt"):
-#     paper_embeddings = {}
-
-#     # Get unique paper IDs
-#     unique_paper_ids = torch.unique(paper_c_paper_train)
-
-#     # Define the embedding layer (one embedding per unique paper)
-#     embed = torch.nn.Embedding(len(unique_paper_ids), embedding_dim)
-
-#     # Create a mapping: paper ID → index in embedding layer
-#     paper_id_to_idx = {pid.item(): idx for idx, pid in enumerate(unique_paper_ids)}
-
-#     # Convert paper_c_paper_train to indices using vectorized operations
-#     indices = torch.tensor([paper_id_to_idx[pid.item()] for pid in paper_c_paper_train.flatten()])
-
-#     # Compute embeddings
-#     embeddings = embed(indices)
-
-#     # Convert to dictionary with original paper IDs
-#     paper_embeddings = {pid.item(): emb for pid, emb in zip(paper_c_paper_train.flatten(), embeddings)}
-
-#     torch.save(paper_embeddings, f"dataset/ogbn_mag/processed/paper_embeddings_{embedding_dim}.pt")
-
-
 import os
 import torch
 
@@ -101,8 +53,8 @@ collected_embeddings = {
     'venue': {}
 }
 
-embedding_dim = 2
-a = -100
+embedding_dim = 8
+a = -1
 b = -a
 # Venue embeddings
 embed = torch.nn.Embedding(len(venues_values), embedding_dim)
