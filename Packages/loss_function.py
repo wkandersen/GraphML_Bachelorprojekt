@@ -1,7 +1,7 @@
 import torch
 
 class LossFunction:
-    def __init__(self, alpha=1.0, lam=0.01, weight=1.0, venue_weight=1.5, eps=1e-8, use_regularization=False):
+    def __init__(self, alpha=1.0, lam=0.01, weight=1.0, venue_weight=15, neg_ratio=5, eps=1e-8, use_regularization=False):
         """
         Initialize the loss function with given parameters.
         
@@ -20,6 +20,7 @@ class LossFunction:
         self.lam = lam
         self.weight = weight
         self.venue_weight = venue_weight
+        self.neg_ratio = neg_ratio
 
     def edge_probability(self, z_i, z_j):
         """Compute the probability of an edge existing between two embeddings."""
@@ -38,7 +39,7 @@ class LossFunction:
 
         return weighted_loss
 
-    def compute_loss(self, z, datamatrix_tensor, neg_ratio=10):
+    def compute_loss(self, z, datamatrix_tensor):
         """Compute the total loss for the dataset."""
         labels = datamatrix_tensor[:, 0].float()
         u_idx = datamatrix_tensor[:, 1].long()
@@ -54,7 +55,7 @@ class LossFunction:
         neg_indices = neg_mask.nonzero(as_tuple=False).squeeze()
 
         num_pos = pos_indices.numel()
-        num_neg_sample = min(neg_indices.numel(), num_pos * neg_ratio)
+        num_neg_sample = min(neg_indices.numel(), num_pos * self.neg_ratio)
 
         sampled_neg_indices = neg_indices[torch.randperm(neg_indices.numel(), device=labels.device)[:num_neg_sample]]
 

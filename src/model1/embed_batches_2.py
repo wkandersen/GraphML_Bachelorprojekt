@@ -15,6 +15,7 @@ from datetime import datetime
 import argparse
 import numpy as np
 from collections import defaultdict
+import gc
 
 
 def get_args():
@@ -30,6 +31,7 @@ def get_args():
     parser.add_argument('--weight', type=float, default = 1.0, help = "Weight for non-edges")
     parser.add_argument('--iterations', type=bool, default=True, help = 'Number of iterations')
     parser.add_argument('--venue_weight', type=float, default = 1.0, help = "Weight for venue_edges")
+    parser.add_argument('--neg_ratio', type=int, default = 5, help="Negative sample ratio")
 
     return parser.parse_args()
 
@@ -45,9 +47,10 @@ embedding_dim = args.embedding_dim
 weight = args.weight
 iterations = args.iterations
 venue_weight = args.venue_weight
+neg_ratio = args.neg_ratio
 
 wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
-loss_function = LossFunction(alpha=alpha, lam=lam, weight=weight, venue_weight=venue_weight)
+loss_function = LossFunction(alpha=alpha, lam=lam, weight=weight, venue_weight=venue_weight, neg_ratio=neg_ratio)
 N_emb = NodeEmbeddingTrainer()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -59,7 +62,9 @@ embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embed
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
+# optimizerstate = embed_dict['optimizer_state']
 # embed_dict = embed_dict['collected_embeddings']
+
 
 citation_dict = defaultdict(list)
 for src, tgt in zip(paper_c_paper_train[0], paper_c_paper_train[1]):
@@ -87,6 +92,7 @@ print(f'Alpha: {args.alpha}')
 print(f'Lambda: {args.lam}')
 print(f'Embedding dim: {args.embedding_dim}')
 print(f'Weight: {args.weight}')
+print(f'Neg_ratio: {args.neg_ratio}')
 
 run = wandb.init(
     project="Bachelor_projekt",
@@ -98,9 +104,11 @@ run = wandb.init(
         "alpha": alpha,
         "lam": lam,
         "weight": weight,
-        "venue_weight": venue_weight
+        "venue_weight": venue_weight,
+        "neg_ratio": neg_ratio
     },
 )
+
 
 for entity_type, subdict in embed_dict.items():
     for key, tensor in subdict.items():
@@ -114,7 +122,11 @@ for group in embed_dict.values():  # e.g., embed_dict['paper'], embed_dict['venu
     for param in group.values():   # e.g., embed_dict['paper'][123]
         params.append(param)
 
+
+# 
 optimizer = torch.optim.Adam(params, lr=lr)
+# optimizer.load_state_dict(optimizerstate)
+
 
 loss_pr_epoch = []
 for i in range(num_epochs):
@@ -165,10 +177,9 @@ for i in range(num_epochs):
             break
 
         # Cleanup
-        if (i + 1) % 5 == 0:  # Or do it every iteration if memory is super tight
-            import gc
-            gc.collect()
-            torch.cuda.empty_cache()
+        # if (i + 1) % 25 == 0:  # Or do it every iteration if memory is super tight
+        #     gc.collect()
+        #     torch.cuda.empty_cache()
 
     if (i + 1) % save_every_iter == 0:
         iter_id = i + 1
@@ -179,7 +190,7 @@ for i in range(num_epochs):
         trainer_path = f"checkpoint/trainer_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
         embed_path = f"checkpoint/embed_dict_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
         l_prev_path = f"checkpoint/l_prev_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        checkpoint_path = f"checkpoint/checkpoint_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}_weight_{weight}.pt"
+        checkpoint_path = f"checkpoint/checkpoint_iter_{batch_size}_dim_{embedding_dim}_{num_epochs}_epoch_{iter_id}_weight_{weight}_neg_ratio_{neg_ratio}.pt"
 
         # Save checkpoint with both embeddings and optimizer state
         checkpoint = {
