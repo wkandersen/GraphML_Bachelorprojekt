@@ -99,3 +99,35 @@ class LossFunction:
             loss += regularization
 
         return loss
+    
+    def get_probs_and_labels(self, z, datamatrix_tensor):
+        labels = datamatrix_tensor[:, 0].float()
+        u_idx = datamatrix_tensor[:, 1].long()
+        v_idx = datamatrix_tensor[:, 2].long()
+        pv1_idx = datamatrix_tensor[:, 3].long()
+        pv2_idx = datamatrix_tensor[:, 4].long()
+
+        edge_entities = {
+            0: 'paper',
+            1: 'author',
+            2: 'institution',
+            3: 'field_of_study',
+            4: 'venue'
+        }
+
+        z_u = torch.stack([
+            z[edge_entities[j.item()]][i.item()]
+            for i, j in zip(u_idx, pv1_idx)
+        ])
+        z_v = torch.stack([
+            z[edge_entities[j.item()]][i.item()]
+            for i, j in zip(v_idx, pv2_idx)
+        ])
+
+        probs = self.edge_probability(z_u, z_v)
+        probs = torch.clamp(probs, self.eps, 1 - self.eps)
+
+        return probs.detach(), labels.detach()
+
+    
+    
