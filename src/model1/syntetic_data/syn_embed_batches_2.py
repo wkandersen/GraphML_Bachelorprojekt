@@ -11,7 +11,8 @@ from collections import defaultdict
 from Packages.loss_function import LossFunction
 from Packages.embed_trainer import NodeEmbeddingTrainer
 from src.mini_batches_fast import mini_batches_fast
-from Packages.create_syn_data import data,paper_c_paper_train, collected_embeddings,venue_value, embedding_dim,num_papers,b,venue_value_test,test_data
+# from Packages.create_syn_data import data,paper_c_paper_train, collected_embeddings,venue_value, embedding_dim,num_papers,b,venue_value_test,test_data
+from Packages.synthetic_data_mixture import data,paper_c_paper_train, collected_embeddings, embedding_dim,b
 from pprint import pprint
 from torch.nn import Parameter
 import random
@@ -30,6 +31,7 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+num_papers = len(paper_c_paper_train.unique())
 set_seed(42)
 def plot_paper_venue_embeddings(
     venue_value, 
@@ -208,7 +210,7 @@ N_emb = NodeEmbeddingTrainer()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-print("starting")
+print("starting") 
 
 
 citation_dict = defaultdict(list)

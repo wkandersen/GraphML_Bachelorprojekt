@@ -201,7 +201,7 @@ for i in range(num_iterations):
             logi = torch.sigmoid(alpha - dist)
             logi_f.append((logi.item(), j))
 
-        logits, node_ids = zip(*logi_f)
+        logits, node_ids = zip(*logi_f) 
         logi_f_tensor = torch.tensor(logits, device=device)
         softma = F.softmax(logi_f_tensor, dim=0)
 
