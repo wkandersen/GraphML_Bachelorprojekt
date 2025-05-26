@@ -87,7 +87,7 @@ def plot_paper_venue_embeddings(venue_value, embed_dict, sample_size=1000, filen
             paper_points[paper_colors == -1, 0],
             paper_points[paper_colors == -1, 1],
             s=2, alpha=0.3, color='gray',
-            label='Papers (true venue NOT in top 5)'
+            label=f'Papers (true venue NOT in top {top})'
         )
 
     plt.scatter(
@@ -96,7 +96,7 @@ def plot_paper_venue_embeddings(venue_value, embed_dict, sample_size=1000, filen
     )
 
     plt.legend()
-    plt.title(f'Sampled Paper and Venue Embeddings\nTrue venue in top 1: {count_true_in_top5} / {len(paper_points)}')
+    plt.title(f'Sampled Paper and Venue Embeddings\nTrue venue in top {top}: {count_true_in_top5} / {len(paper_points)}')
     plt.xlabel('Dimension 1')
     plt.ylabel('Dimension 2')
 
@@ -114,7 +114,9 @@ def plot_paper_venue_embeddings(venue_value, embed_dict, sample_size=1000, filen
     else:
         plt.show()
 
+epoch = 18
+emb_dim = 8
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device)
-check = torch.load("checkpoint/checkpoint_venue_weight_iter_64_2_5_epoch_4.pt",map_location=device)
+check = torch.load(f"checkpoint/checkpoint_iter_64_{emb_dim}_50_epoch_{epoch}_weight_0.1_with_optimizer.pt",map_location=device)
 embed_dict = check['collected_embeddings']
-plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=embed_dict,filename='plot_embeddings',top=5)
+plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=embed_dict,filename=f'plot_embeddings_dim_{emb_dim}_epoch_{epoch}.png',dim=emb_dim,top=1)
