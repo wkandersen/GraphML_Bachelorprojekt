@@ -10,7 +10,7 @@
 #BSUB -W 24:00
 #BSUB -B
 #BSUB -N
-#BSUB -u williamkirkandersen@gmail.com
+#BSUB -u s224197@dtu.dk
 
 export PYTHONPATH=$PYTHONPATH:$(pwd)/src:$(pwd)/Packages:$(pwd)/dataset 
 
@@ -20,6 +20,6 @@ source ~/miniconda3/bin/activate
 
 conda activate Bachelorprojekt
 
-python src/model1/embed_batches_2.py --alpha=0.1 --epochs=12 --batch_size=100 --embedding_dim=2 --weight=0.01 --venue_weight=100 > joboutput_${LSB_JOBID}_$(date +%Y%m%d_%H%M%S).out 2>&1
+python src/model1/embed_batches_2.py --alpha=0.1 --epochs=50 --batch_size=64 --embedding_dim=8 --weight=0.10 --venue_weight=100 > joboutput_${LSB_JOBID}_$(date +%Y%m%d_%H%M%S).out 2>&1
 # python src/model1/embed_valid.py > joboutput_${LSB_JOBID}_$(date +%Y%m%d_%H%M%S).out 2>&1
 # python src/model1/predict.py > joboutput_${LSB_JOBID}_$(date +%Y%m%d_%H%M%S).out 2>&1

@@ -15,7 +15,15 @@ from datetime import datetime
 import argparse
 import numpy as np
 from collections import defaultdict
-import gc
+from datetime import datetime
+
+# Create a timestamp string for the run
+run_start_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+checkpoint_dir = os.path.join("checkpoint", run_start_time)
+
+# Create the directory
+os.makedirs(checkpoint_dir, exist_ok=True)
+
 
 
 def get_args():
@@ -56,9 +64,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 print("starting")
+checkpoint_epoch = 18
 
 # Load initial embeddings
-embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}.pt", map_location=device)
+# embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_1.pt", map_location=device)
+checkpoint = torch.load(f'checkpoint/checkpoint_iter_64_{embedding_dim}_50_epoch_{checkpoint_epoch}_weight_0.1_with_optimizer.pt',map_location=device)
+embed_dict = checkpoint['collected_embeddings']
+optimizer_state = checkpoint['optimizer_state']
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
 data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
@@ -96,7 +108,7 @@ print(f'Neg_ratio: {args.neg_ratio}')
 
 run = wandb.init(
     project="Bachelor_projekt",
-    name=f"run_{datetime.now():%Y-%m-%d_%H-%M-%S}, {embedding_dim} and {venue_weight}",
+    name=f"part_3_run_{datetime.now():%Y-%m-%d_%H-%M-%S}, {embedding_dim} and {venue_weight}",
     config={
         "batch_size": batch_size,
         "num_epochs": num_epochs,
@@ -125,8 +137,7 @@ for group in embed_dict.values():  # e.g., embed_dict['paper'], embed_dict['venu
 
 # 
 optimizer = torch.optim.Adam(params, lr=lr)
-# optimizer.load_state_dict(optimizerstate)
-
+optimizer.load_state_dict(optimizer_state)
 
 loss_pr_epoch = []
 for i in range(num_epochs):
@@ -176,21 +187,21 @@ for i in range(num_epochs):
             print(loss_pr_epoch[i])
             break
 
-        # Cleanup
+        # # Cleanup
         # if (i + 1) % 25 == 0:  # Or do it every iteration if memory is super tight
+        #     import gc
         #     gc.collect()
         #     torch.cuda.empty_cache()
 
     if (i + 1) % save_every_iter == 0:
         iter_id = i + 1
 
-        os.makedirs("checkpoint", exist_ok=True)
+        # Define paths within timestamped folder
+        trainer_path = os.path.join(checkpoint_dir, f"trainer_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
+        embed_path = os.path.join(checkpoint_dir, f"embed_dict_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
+        l_prev_path = os.path.join(checkpoint_dir, f"l_prev_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
+        checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}_weight_{weight}_with_optimizer.pt")
 
-        # Define paths
-        trainer_path = f"checkpoint/trainer_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        embed_path = f"checkpoint/embed_dict_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        l_prev_path = f"checkpoint/l_prev_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt"
-        checkpoint_path = f"checkpoint/checkpoint_iter_{batch_size}_dim_{embedding_dim}_{num_epochs}_epoch_{iter_id}_weight_{weight}_neg_ratio_{neg_ratio}.pt"
 
         # Save checkpoint with both embeddings and optimizer state
         checkpoint = {
@@ -220,7 +231,7 @@ for group_key in embed_dict:  # 'paper', 'venue'
     for id_key in embed_dict[group_key]:
         embed_dict[group_key][id_key] = embed_dict[group_key][id_key].detach().clone().cpu()
 
-torch.save(embed_dict, f"dataset/ogbn_mag/processed/hpc/paper_dict_{batch_size}_{embedding_dim}_dim_{num_epochs}_epoch.pt")
+torch.save(embed_dict, f"dataset/ogbn_mag/processed/hpc/paper_dict_{batch_size}_{embedding_dim}_dim_{num_epochs+checkpoint_epoch+1}_epoch.pt")
 
 
 print('Embed_batches done')
