@@ -155,6 +155,8 @@ for i in range(num_epochs):
     for j in range(num_iterations):
         mini_b.set_unique_list(l_prev)  # Update only the node list
         dm, l_next, random_sample = mini_b.data_matrix()
+        dm_ven_pap = dm[dm[:,4] == 4]
+        dm_pap_pap = dm[dm[:,4] != 4]
         # print(dm)
 
     # for j in range(num_iterations):
@@ -167,11 +169,15 @@ for i in range(num_epochs):
         dm = dm.to(device)
         optimizer.zero_grad()
         loss = loss_function.compute_loss(embed_dict, dm)
+        loss_ven = loss_function.compute_loss(embed_dict,dm_ven_pap)
+        loss_pap = loss_function.compute_loss(embed_dict,dm_pap_pap)
         loss.backward()
         # print(embed_dict)
         optimizer.step()
         # Log loss to wandb
         wandb.log({"loss": loss.detach().item()})
+        wandb.log({"paper_loss": loss_pap.detach().item()})
+        wandb.log({"venue_loss": loss_ven.detach().item()})
         # print(f"Loss: {loss.detach().item()}")
         # Update node list for the next iteration
         loss_pr_iteration.append(loss.detach().item())
