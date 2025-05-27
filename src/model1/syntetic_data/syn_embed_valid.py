@@ -64,7 +64,7 @@ l_prev = list(valid_exclusive)
 predictions = {}
 
 for i in range(num_iterations):
-    mini_b = mini_batches_fast(paper_c_paper_valid, l_prev, batch_size, ('paper', 'cites', 'paper'), data,citation_dict, all_papers)
+    mini_b = mini_batches_fast(paper_c_paper_valid, l_prev, batch_size, ('paper', 'cites', 'paper'), data,citation_dict, all_papers,venues=False)
     dm, l_next, random_sample = mini_b.data_matrix()
     print(random_sample)
     print(paper_c_paper_valid)
@@ -73,6 +73,7 @@ for i in range(num_iterations):
         continue
 
     dm = dm[dm[:, 4] != 4]
+    print(dm)
 
     test1 = dm[dm[:, 0] == 1]
     list_test = test1[:, 2].unique().tolist()

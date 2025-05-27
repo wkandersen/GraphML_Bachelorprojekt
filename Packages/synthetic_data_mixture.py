@@ -203,54 +203,56 @@ paper_c_paper_valid=edges_set(num_edges=num_edges_valid,range_i0=i0valid,range_i
 i0test,i1test,j0test,j1test = int(num_nodes*train)+int(num_nodes*valid)+1,num_nodes-1,0,num_nodes-1
 paper_c_paper_test=edges_set(num_edges=num_edges_test,range_i0=i0test,range_i1=i1test,range_j0=j0test,range_j1=j1test)
 
+print(i0valid,i1valid)
+
 print(paper_c_paper_test.shape,paper_c_paper_train.shape,paper_c_paper_valid.shape)
 
-embedding_dim = 2
-a = -1
-b = -a
+# embedding_dim = 2
+# a = -1
+# b = -a
 
-collected_embeddings = {
-    'paper': {},
-    'venue': {}
-}
-# Venue embeddings
-embed = torch.nn.Embedding(len(venues_values), embedding_dim)
-torch.nn.init.uniform_(embed.weight, a, b)
+# collected_embeddings = {
+#     'paper': {},
+#     'venue': {}
+# }
+# # Venue embeddings
+# embed = torch.nn.Embedding(len(venues_values), embedding_dim)
+# torch.nn.init.uniform_(embed.weight, a, b)
 
-venue_id_to_idx = {venue_id: idx for idx, venue_id in enumerate(venues_values)}
+# venue_id_to_idx = {venue_id: idx for idx, venue_id in enumerate(venues_values)}
 
-indices = torch.tensor([venue_id_to_idx[venue_id] for venue_id in venues_values], dtype=torch.long)
-embeddings = embed(indices)
+# indices = torch.tensor([venue_id_to_idx[venue_id] for venue_id in venues_values], dtype=torch.long)
+# embeddings = embed(indices)
 
-for venue_id in venues_values:
-    collected_embeddings['venue'][venue_id] = embeddings[venue_id_to_idx[venue_id]]
+# for venue_id in venues_values:
+#     collected_embeddings['venue'][venue_id] = embeddings[venue_id_to_idx[venue_id]]
 
-# Paper embeddings
-unique_paper_ids = torch.unique(paper_c_paper_train)
-embed = torch.nn.Embedding(len(unique_paper_ids), embedding_dim)
-torch.nn.init.uniform_(embed.weight, a, b)
-paper_id_to_idx = {pid.item(): idx for idx, pid in enumerate(unique_paper_ids)}
+# # Paper embeddings
+# unique_paper_ids = torch.unique(paper_c_paper_train)
+# embed = torch.nn.Embedding(len(unique_paper_ids), embedding_dim)
+# torch.nn.init.uniform_(embed.weight, a, b)
+# paper_id_to_idx = {pid.item(): idx for idx, pid in enumerate(unique_paper_ids)}
 
-indices = torch.tensor([paper_id_to_idx[pid.item()] for pid in paper_c_paper_train.flatten()], dtype=torch.long)
-embeddings = embed(indices)
+# indices = torch.tensor([paper_id_to_idx[pid.item()] for pid in paper_c_paper_train.flatten()], dtype=torch.long)
+# embeddings = embed(indices)
 
-for pid, emb in zip(paper_c_paper_train.flatten(), embeddings):
-    collected_embeddings['paper'][pid.item()] = emb.detach().clone()
+# for pid, emb in zip(paper_c_paper_train.flatten(), embeddings):
+#     collected_embeddings['paper'][pid.item()] = emb.detach().clone()
 
-save_path = f"src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b{b}.pt"
-if collected_embeddings:
-    save = {
-        'collected_embeddings': collected_embeddings,
-        'paper_c_paper_train': paper_c_paper_train,
-        'paper_c_paper_valid': paper_c_paper_valid,
-        'paper_c_paper_test': paper_c_paper_test,
-        'data': data,
-        'venue_value': venues_values
-        }
-    torch.save(save,save_path)
-    print("embeddings saved")
+# save_path = f"src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b{b}.pt"
+# if collected_embeddings:
+#     save = {
+#         'collected_embeddings': collected_embeddings,
+#         'paper_c_paper_train': paper_c_paper_train,
+#         'paper_c_paper_valid': paper_c_paper_valid,
+#         'paper_c_paper_test': paper_c_paper_test,
+#         'data': data,
+#         'venue_value': venues_values
+#         }
+#     torch.save(save,save_path)
+#     print("embeddings saved")
 
 
-# Load the collected embeddings dictionary
-# collected_embeddings = torch.load(f"src/model1/syntetic_data/embed_dict/collected_embeddings_{embedding_dim}_spread_{b}_synt_new.pt")
+# # Load the collected embeddings dictionary
+# # collected_embeddings = torch.load(f"src/model1/syntetic_data/embed_dict/collected_embeddings_{embedding_dim}_spread_{b}_synt_new.pt")
 

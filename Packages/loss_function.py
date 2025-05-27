@@ -51,8 +51,9 @@ class LossFunction:
         pos_mask = labels == 1
         neg_mask = labels == 0
 
-        pos_indices = pos_mask.nonzero(as_tuple=False).squeeze()
-        neg_indices = neg_mask.nonzero(as_tuple=False).squeeze()
+        pos_indices = pos_mask.nonzero(as_tuple=False).flatten()
+        neg_indices = neg_mask.nonzero(as_tuple=False).flatten()
+
 
         num_pos = pos_indices.numel()
         num_neg_sample = min(neg_indices.numel(), num_pos * self.neg_ratio)
@@ -68,6 +69,9 @@ class LossFunction:
         pv1_idx = pv1_idx[keep_indices]     
         pv2_idx = pv2_idx[keep_indices]
 
+        z_u_list = []
+        z_v_list = []
+        valid_labels = []
 
         edge_entities = {
             0: 'paper',
@@ -76,19 +80,34 @@ class LossFunction:
             3: 'field_of_study',
             4: 'venue'
         }
+        venue_mask_list = []
 
-        # Get embeddings
-        z_u = torch.stack([
-            z[edge_entities[j.item()]][i.item()]
-            for i, j in zip(u_idx, pv1_idx)
-        ])
-        z_v = torch.stack([
-            z[edge_entities[j.item()]][i.item()]
-            for i, j in zip(v_idx, pv2_idx)
-        ])
+        for i, j, i2, j2, label in zip(u_idx, pv1_idx, v_idx, pv2_idx, labels):
+            ent_type_u = edge_entities[j.item()]
+            ent_type_v = edge_entities[j2.item()]
+            id_u = i.item()
+            id_v = i2.item()
 
-        # Create mask for edges involving venue
-        venue_mask = (pv1_idx == 4) | (pv2_idx == 4)
+            if id_u not in z[ent_type_u] or id_v not in z[ent_type_v]:
+                continue  # skip this edge
+
+            z_u_list.append(z[ent_type_u][id_u])
+            z_v_list.append(z[ent_type_v][id_v])
+            valid_labels.append(label)
+            
+            # Construct venue mask entry based on original j/j2
+            is_venue = (j.item() == 4) or (j2.item() == 4)
+            venue_mask_list.append(is_venue)
+
+
+        # Final tensors
+        z_u = torch.stack(z_u_list)
+        z_v = torch.stack(z_v_list)
+        labels = torch.tensor(valid_labels, device=z_u.device)
+
+
+        venue_mask = torch.tensor(venue_mask_list, device=z_u.device, dtype=torch.bool)
+
 
         # Compute loss with venue-aware weighting
         link_loss = self.link_loss(labels, z_u, z_v, venue_mask)
