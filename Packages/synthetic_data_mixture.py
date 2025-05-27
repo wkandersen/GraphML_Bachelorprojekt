@@ -5,6 +5,19 @@ import matplotlib.pyplot as plt
 import torch
 import random
 
+def set_seed(seed=42):
+    import random
+    import numpy as np
+    import torch
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+set_seed(42)
+
 # 1) Define our four quadrant means and identical isotropic covariances
 mean = 0.3
 means = np.array([
@@ -224,10 +237,20 @@ embeddings = embed(indices)
 for pid, emb in zip(paper_c_paper_train.flatten(), embeddings):
     collected_embeddings['paper'][pid.item()] = emb.detach().clone()
 
+save_path = f"src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b{b}.pt"
 if collected_embeddings:
-    torch.save(collected_embeddings, f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_{b}_synt_new.pt")
+    save = {
+        'collected_embeddings': collected_embeddings,
+        'paper_c_paper_train': paper_c_paper_train,
+        'paper_c_paper_valid': paper_c_paper_valid,
+        'paper_c_paper_test': paper_c_paper_test,
+        'data': data,
+        'venue_value': venues_values
+        }
+    torch.save(save,save_path)
     print("embeddings saved")
 
+
 # Load the collected embeddings dictionary
-collected_embeddings = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_{b}_synt_new.pt")
+# collected_embeddings = torch.load(f"src/model1/syntetic_data/embed_dict/collected_embeddings_{embedding_dim}_spread_{b}_synt_new.pt")
 

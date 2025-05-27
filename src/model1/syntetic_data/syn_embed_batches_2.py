@@ -10,9 +10,9 @@ import numpy as np
 from collections import defaultdict
 from Packages.loss_function import LossFunction
 from Packages.embed_trainer import NodeEmbeddingTrainer
-from src.mini_batches_fast import mini_batches_fast
+from Packages.mini_batches_fast import mini_batches_fast
 # from Packages.create_syn_data import data,paper_c_paper_train, collected_embeddings,venue_value, embedding_dim,num_papers,b,venue_value_test,test_data
-from Packages.synthetic_data_mixture import data,paper_c_paper_train, collected_embeddings, embedding_dim,b
+# from Packages.synthetic_data_mixture import data,paper_c_paper_train, collected_embeddings, embedding_dim,b
 from pprint import pprint
 from torch.nn import Parameter
 import random
@@ -31,8 +31,14 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+embedding_dim = 2
+b = 1
+save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b{b}.pt')
+paper_c_paper_train = save['paper_c_paper_train']
+data,venue_value = save['data'], save['venue_value']
 num_papers = len(paper_c_paper_train.unique())
 set_seed(42)
+text = 'test'
 def plot_paper_venue_embeddings(
     venue_value, 
     embed_dict, 
@@ -159,8 +165,8 @@ def plot_paper_venue_embeddings(
         plt.savefig(filename, dpi=300)
         print(f"Plot saved to: {filename}")
         plt.close()
-    else:
-        plt.show()
+    # else:
+    #     plt.show()
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -188,9 +194,9 @@ def plot_pos_neg_histograms(pos_probs, neg_probs, epoch, batch):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
+    # plt.show()
 
-embed_dict = collected_embeddings
+embed_dict = save['collected_embeddings']
 
 batch_size = 60
 num_epochs = 50
@@ -198,7 +204,7 @@ lr = 0.5
 alpha = 0.1
 lam = 0.1
 weight = 1
-venue_weight = 10
+venue_weight = 1
 folder = 'test'
 # folder_specifik = f'false'
 folder_specifik = f''
@@ -400,3 +406,9 @@ loss_plot_path = f"src/model1/syntetic_data/Plots/{folder}/loss_ven_pap_plot_{fo
 plt.savefig(loss_plot_path, dpi=300)
 print(f"Loss plot saved to: {loss_plot_path}")
 # plt.show()
+
+for group_key in embed_dict:  # 'paper', 'venue'
+    for id_key in embed_dict[group_key]:
+        embed_dict[group_key][id_key] = embed_dict[group_key][id_key].detach().clone().cpu()
+
+torch.save(embed_dict, f"src/model1/syntetic_data/embed_dict/embed_dict_{text}.pt")
