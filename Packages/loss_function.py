@@ -90,7 +90,7 @@ class LossFunction:
 
             if id_u not in z[ent_type_u] or id_v not in z[ent_type_v]:
                 continue  # skip this edge
-
+            
             z_u_list.append(z[ent_type_u][id_u])
             z_v_list.append(z[ent_type_v][id_v])
             valid_labels.append(label)
@@ -101,6 +101,8 @@ class LossFunction:
 
 
         # Final tensors
+        if z_u_list is torch.empty or z_v_list is torch.empty or not valid_labels:
+            return 
         z_u = torch.stack(z_u_list)
         z_v = torch.stack(z_v_list)
         labels = torch.tensor(valid_labels, device=z_u.device)

@@ -4,6 +4,7 @@ from sklearn.mixture import GaussianMixture
 import matplotlib.pyplot as plt
 import torch
 import random
+from collections import Counter
 
 def set_seed(seed=42):
     import random
@@ -16,10 +17,11 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-set_seed(42)
+set_seed(69)
 
+n_samples = 2500
 # 1) Define our four quadrant means and identical isotropic covariances
-mean = 0.3
+mean = 0.15
 means = np.array([
     [ mean,  mean],   # Q1: x∈(0,1), y∈(0,1)
     [-mean,  mean],   # Q2: x∈(-1,0),y∈(0,1)
@@ -46,16 +48,16 @@ gmm.precisions_cholesky_ = precisions_cholesky
 
 # 3) Oversample from the mixture and carve out exactly 50 per component
 #    (we draw 1000 points so that each component will almost surely have ≥50)
-samples, labels = gmm.sample(1000)
+samples, labels = gmm.sample(n_samples*4)
 
 selected = []
 for comp in range(4):
-    idx = np.where(labels == comp)[0][:50]
+    idx = np.where(labels == comp)[0][:n_samples // 4]
     selected.append(samples[idx])
 emb_data = np.vstack(selected)  # shape (200,2)
 
 # 4) Stuff into a torch.nn.Embedding
-emb = nn.Embedding(200, 2)
+emb = nn.Embedding(n_samples, 2)
 with torch.no_grad():
     emb.weight.copy_(torch.from_numpy(emb_data).float())
 
@@ -65,7 +67,7 @@ print(emb.weight.shape)  # torch.Size([200, 2])
 embeddings = emb.weight.detach()
 # labels are the component labels
 labels = gmm.predict(embeddings)
-
+mean = 0.2
 venue_embeds = np.array([
     [0, 0],
     [0, -mean],
@@ -93,7 +95,7 @@ plt.xlabel('X-axis')
 plt.ylabel('Y-axis')
 plt.legend()
 plt.grid()
-# plt.show()
+plt.show()
 
 def edge_probability(z_i, z_j, alpha=2):
     """Compute the probability of an edge existing between two embeddings."""
@@ -103,17 +105,17 @@ def edge_probability(z_i, z_j, alpha=2):
 
 venue_embeddings = venue_emb.weight.detach()
 venues_values = {}
-min_indices = []
+max_indices = []
 for i in range(embeddings.shape[0]):
     venue_dist = []
     for j in range(venue_embeddings.shape[0]):
         venue_dist.append((edge_probability(embeddings[i],venue_embeddings[j]).item(),j))
 
-    min_prob, min_index = min(venue_dist, key=lambda x: x[0])
-    venues_values[i] = torch.tensor(min_index)
-    min_indices.append([min_index])
+    max_prob, max_index = max(venue_dist, key=lambda x: x[0])
+    venues_values[i] = torch.tensor(max_index)
+    max_indices.append([max_index])
 
-min_index_tensor = torch.tensor(min_indices)
+min_index_tensor = torch.tensor(max_indices)
 
 # Now build the dictionary
 data = {
@@ -122,7 +124,7 @@ data = {
     }
 }
 
-train,valid,test = 0.7,0.15,0.15
+train,valid,test = 0.7,0.2,0.10
 num_edges_train = (3879968/623568)*(embeddings.shape[0]*train) #edges divided by nodes in training timed with nodes in synthetic
 num_edges_valid = (847520/330812)*(embeddings.shape[0]*valid)
 num_edges_test = (688783/275074)*(embeddings.shape[0]*test)
@@ -207,52 +209,87 @@ print(i0valid,i1valid)
 
 print(paper_c_paper_test.shape,paper_c_paper_train.shape,paper_c_paper_valid.shape)
 
-# embedding_dim = 2
-# a = -1
-# b = -a
+embedding_dim = 2
+a = -1
+b = -a
 
-# collected_embeddings = {
-#     'paper': {},
-#     'venue': {}
-# }
-# # Venue embeddings
-# embed = torch.nn.Embedding(len(venues_values), embedding_dim)
-# torch.nn.init.uniform_(embed.weight, a, b)
+collected_embeddings = {
+    'paper': {},
+    'venue': {}
+}
+# Print how many values are assigned to each venue key
+venue_counts = Counter([v.item() for v in venues_values.values()])
+print("Venue assignment counts:", dict(venue_counts))
+
+# Get unique paper indices in the validation set
+unique_papers = np.unique(paper_c_paper_valid[0].numpy())
+# Map each paper to its venue using venues_values
+venue_assignments = [venues_values[int(pid)].item() for pid in unique_papers]
+# Count how many papers are assigned to each venue
+venue_count = Counter(venue_assignments)
+print("Venue assignment counts for validation set:", dict(venue_count))
+
+
+unique_papers = np.unique(paper_c_paper_test[0].numpy())
+# Map each paper to its venue using venues_values
+venue_assignments = [venues_values[int(pid)].item() for pid in unique_papers]
+# Count how many papers are assigned to each venue
+venue_count = Counter(venue_assignments)
+print("Venue assignment counts for test set:", dict(venue_count))
+# print(venues_values)
+
+unique_papers = np.unique(paper_c_paper_train[0].numpy())
+# Map each paper to its venue using venues_values
+venue_assignments = [venues_values[int(pid)].item() for pid in unique_papers]
+# Count how many papers are assigned to each venue
+venue_count = Counter(venue_assignments)
+print("Venue assignment counts for train set:", dict(venue_count))
+# print(venues_values)
+
+# Venue embeddings
+embed = torch.nn.Embedding(len(venues_values), embedding_dim)
+torch.nn.init.uniform_(embed.weight, a, b)
 
 # venue_id_to_idx = {venue_id: idx for idx, venue_id in enumerate(venues_values)}
 
 # indices = torch.tensor([venue_id_to_idx[venue_id] for venue_id in venues_values], dtype=torch.long)
 # embeddings = embed(indices)
-
-# for venue_id in venues_values:
-#     collected_embeddings['venue'][venue_id] = embeddings[venue_id_to_idx[venue_id]]
-
-# # Paper embeddings
-# unique_paper_ids = torch.unique(paper_c_paper_train)
-# embed = torch.nn.Embedding(len(unique_paper_ids), embedding_dim)
-# torch.nn.init.uniform_(embed.weight, a, b)
-# paper_id_to_idx = {pid.item(): idx for idx, pid in enumerate(unique_paper_ids)}
-
-# indices = torch.tensor([paper_id_to_idx[pid.item()] for pid in paper_c_paper_train.flatten()], dtype=torch.long)
-# embeddings = embed(indices)
-
-# for pid, emb in zip(paper_c_paper_train.flatten(), embeddings):
-#     collected_embeddings['paper'][pid.item()] = emb.detach().clone()
-
-# save_path = f"src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b{b}.pt"
-# if collected_embeddings:
-#     save = {
-#         'collected_embeddings': collected_embeddings,
-#         'paper_c_paper_train': paper_c_paper_train,
-#         'paper_c_paper_valid': paper_c_paper_valid,
-#         'paper_c_paper_test': paper_c_paper_test,
-#         'data': data,
-#         'venue_value': venues_values
-#         }
-#     torch.save(save,save_path)
-#     print("embeddings saved")
+print(len(venues_values))
 
 
-# # Load the collected embeddings dictionary
-# # collected_embeddings = torch.load(f"src/model1/syntetic_data/embed_dict/collected_embeddings_{embedding_dim}_spread_{b}_synt_new.pt")
+# Collect venue embeddings and print their length
+for venue_id in range(venue_emb.num_embeddings):
+    collected_embeddings['venue'][venue_id] = embed.weight[venue_id].detach().clone()
+
+# Paper embeddings
+unique_paper_ids = torch.unique(paper_c_paper_train)
+embed = torch.nn.Embedding(len(unique_paper_ids), embedding_dim)
+torch.nn.init.uniform_(embed.weight, a, b)
+paper_id_to_idx = {pid.item(): idx for idx, pid in enumerate(unique_paper_ids)}
+
+indices = torch.tensor([paper_id_to_idx[pid.item()] for pid in paper_c_paper_train.flatten()], dtype=torch.long)
+embeddings = embed(indices)
+
+for pid, emb in zip(paper_c_paper_train.flatten(), embeddings):
+    collected_embeddings['paper'][pid.item()] = emb.detach().clone()
+
+save_path = f"src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b{b}.pt"
+if collected_embeddings:
+    save = {
+        'collected_embeddings': collected_embeddings,
+        'paper_c_paper_train': paper_c_paper_train,
+        'paper_c_paper_valid': paper_c_paper_valid,
+        'paper_c_paper_test': paper_c_paper_test,
+        'data': data,
+        'venue_value': venues_values
+        }
+    torch.save(save,save_path)
+    print("embeddings saved")
+
+print("collected_embeddings:", collected_embeddings["venue"])
+# print("colletec_embeddings length:", len(collected_embeddings['venue']))
+# 
+
+# Load the collected embeddings dictionary
+# collected_embeddings = torch.load(f"src/model1/syntetic_data/embed_dict/collected_embeddings_{embedding_dim}_spread_{b}_synt_new.pt")
 

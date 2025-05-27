@@ -13,6 +13,7 @@ from Packages.embed_trainer import NodeEmbeddingTrainer
 from Packages.mini_batches_fast import mini_batches_fast
 # from Packages.create_syn_data import data,paper_c_paper_train, collected_embeddings,venue_value, embedding_dim,num_papers,b,venue_value_test,test_data
 # from Packages.synthetic_data_mixture import data,paper_c_paper_train, collected_embeddings, embedding_dim,b
+from venue_homogeneity import compute_venue_homogeneity
 from pprint import pprint
 from torch.nn import Parameter
 import random
@@ -37,8 +38,12 @@ save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_
 paper_c_paper_train = save['paper_c_paper_train']
 data,venue_value = save['data'], save['venue_value']
 num_papers = len(paper_c_paper_train.unique())
-set_seed(42)
+set_seed(69)
 text = 'test'
+
+overall, per_paper = compute_venue_homogeneity(paper_c_paper_train, venue_value)
+print(f"Overall venue homogeneity: {overall:.4f}")
+
 def plot_paper_venue_embeddings(
     venue_value, 
     embed_dict, 
@@ -199,12 +204,12 @@ def plot_pos_neg_histograms(pos_probs, neg_probs, epoch, batch):
 embed_dict = save['collected_embeddings']
 
 batch_size = 60
-num_epochs = 50
+num_epochs = 25
 lr = 0.5
 alpha = 0.1
 lam = 0.1
 weight = 1
-venue_weight = 1
+venue_weight = 100
 folder = 'test'
 # folder_specifik = f'false'
 folder_specifik = f''
@@ -327,21 +332,21 @@ for i in range(num_epochs):
         plot_pos_neg_histograms(pos_probs_epoch, neg_probs_epoch, epoch=i, batch='all')
 
 # # After training
-# with open("embedding_output_after.txt", "w") as f:
-#     pprint(embed_dict, stream=f, indent=2, width=80)
+with open("embedding_output_after.txt", "w") as f:
+    pprint(embed_dict, stream=f, indent=2, width=80)
 
-# import os
-# print("Saving to:", os.getcwd())
+import os
+print("Saving to:", os.getcwd())
 
-# plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=embed_dict,sample_size=num_papers,filename=file_after,plot_params={
-#         "alpha": alpha,
-#         "lambda": lam,
-#         "weight": weight,
-#         "venue_weight": venue_weight,
-#         "lr": lr,
-#         "epochs": num_epochs,
-#         "dim": embedding_dim
-#     })
+plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=embed_dict,sample_size=num_papers,filename=file_after,plot_params={
+        "alpha": alpha,
+        "lambda": lam,
+        "weight": weight,
+        "venue_weight": venue_weight,
+        "lr": lr,
+        "epochs": num_epochs,
+        "dim": embedding_dim
+    })
 
 # Plot training loss over epochs
 plt.figure(figsize=(8, 5))
@@ -412,3 +417,4 @@ for group_key in embed_dict:  # 'paper', 'venue'
         embed_dict[group_key][id_key] = embed_dict[group_key][id_key].detach().clone().cpu()
 
 torch.save(embed_dict, f"src/model1/syntetic_data/embed_dict/embed_dict_{text}.pt")
+
