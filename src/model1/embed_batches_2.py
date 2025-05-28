@@ -64,7 +64,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 print("starting")
-checkpoint_epoch = 18
+checkpoint_epoch = 4
 
 # Load initial embeddings
 # embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_1.pt", map_location=device)
@@ -108,7 +108,7 @@ print(f'Neg_ratio: {args.neg_ratio}')
 
 run = wandb.init(
     project="Bachelor_projekt",
-    name=f"part_3_run_{datetime.now():%Y-%m-%d_%H-%M-%S}, {embedding_dim} and {venue_weight}",
+    name=f"part_2_5_neg_run_{datetime.now():%Y-%m-%d_%H-%M-%S}, {embedding_dim} and {venue_weight}",
     config={
         "batch_size": batch_size,
         "num_epochs": num_epochs,
@@ -213,7 +213,7 @@ for i in range(num_epochs):
 
         # Save trainer and embeddings separately
         # N_emb.save_checkpoint(trainer_path)
-        torch.save(l_prev, l_prev_path)
+        # torch.save(l_prev, l_prev_path)
 
         # Append checkpoint paths to track for cleanup
         saved_checkpoints.append(checkpoint_path)
