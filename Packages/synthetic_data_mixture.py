@@ -5,23 +5,16 @@ import matplotlib.pyplot as plt
 import torch
 import random
 from collections import Counter
-
-def set_seed(seed=42):
-    import random
-    import numpy as np
-    import torch
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+from Packages.plot_embeddings import set_seed
 
 set_seed(69)
+embedding_dim = 8
+a = -1
+b = -a
 
-n_samples = 2500
+n_samples = 25000
 # 1) Define our four quadrant means and identical isotropic covariances
-mean = 0.15
+mean = 0.25
 means = np.array([
     [ mean,  mean],   # Q1: x∈(0,1), y∈(0,1)
     [-mean,  mean],   # Q2: x∈(-1,0),y∈(0,1)
@@ -67,7 +60,7 @@ print(emb.weight.shape)  # torch.Size([200, 2])
 embeddings = emb.weight.detach()
 # labels are the component labels
 labels = gmm.predict(embeddings)
-mean = 0.2
+# mean = 0.2
 venue_embeds = np.array([
     [0, 0],
     [0, -mean],
@@ -106,7 +99,7 @@ def edge_probability(z_i, z_j, alpha=2):
 venue_embeddings = venue_emb.weight.detach()
 venues_values = {}
 max_indices = []
-for i in range(embeddings.shape[0]):
+for i in range(embeddings.shape[0]): 
     venue_dist = []
     for j in range(venue_embeddings.shape[0]):
         venue_dist.append((edge_probability(embeddings[i],venue_embeddings[j]).item(),j))
@@ -208,10 +201,6 @@ paper_c_paper_test=edges_set(num_edges=num_edges_test,range_i0=i0test,range_i1=i
 print(i0valid,i1valid)
 
 print(paper_c_paper_test.shape,paper_c_paper_train.shape,paper_c_paper_valid.shape)
-
-embedding_dim = 2
-a = -1
-b = -a
 
 collected_embeddings = {
     'paper': {},
