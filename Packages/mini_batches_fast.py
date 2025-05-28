@@ -7,7 +7,7 @@ from collections import defaultdict
 
 
 class mini_batches_fast(mini_batches_code):
-    def __init__(self, data, unique_list, sample_size, edge_type, full_data, citation_dict, all_papers):
+    def __init__(self, data, unique_list, sample_size, edge_type, full_data, citation_dict, all_papers,venues=True):
         self.data = data
         self.sample_size = sample_size
         self.edge_type = edge_type
@@ -18,6 +18,7 @@ class mini_batches_fast(mini_batches_code):
         self.all_papers = all_papers
         self.remaining_papers = set(all_papers)
         self.set_unique_list(unique_list) 
+        self.venues = venues
 
     
     def set_unique_list(self, unique_list):
@@ -85,13 +86,36 @@ class mini_batches_fast(mini_batches_code):
         random_sample_tensor = torch.tensor(random_sample, device=self.device).long()
         venue_targets = paper_venues[random_sample_tensor]
 
-        venues_tensor = torch.stack([
-            torch.ones(len(random_sample), device=self.device, dtype=torch.long),
-            random_sample_tensor,
-            venue_targets.flatten(),
-            torch.full((len(random_sample),), edge_type1, device=self.device),
-            torch.full((len(random_sample),), edge_entities['venue'], device=self.device)
-        ], dim=1).long()
+        if self.venues==True:
+            venues_tensor = torch.stack([
+                torch.ones(len(random_sample), device=self.device, dtype=torch.long),
+                random_sample_tensor,
+                venue_targets.flatten(),
+                torch.full((len(random_sample),), edge_type1, device=self.device),
+                torch.full((len(random_sample),), edge_entities['venue'], device=self.device)
+            ], dim=1).long()
+
+            
+        comb_r, comb_j = torch.combinations(random_sample_tensor, r=2).unbind(1)
+        r_venue = paper_venues[comb_r]
+        j_venue = paper_venues[comb_j]
+        unequal_mask = (r_venue != j_venue).flatten().nonzero(as_tuple=True)[0]
+
+        if unequal_mask.numel() > 0:
+            comb_r = comb_r[unequal_mask].squeeze()
+            comb_j = comb_j[unequal_mask].squeeze()
+            r_venue = r_venue[unequal_mask]
+            j_venue = j_venue[unequal_mask]
+
+            venue_non_edges = torch.cat([
+                torch.zeros((comb_r.shape[0]*2, 1), device=self.device, dtype=torch.long),
+                torch.cat([comb_r.unsqueeze(1), comb_j.unsqueeze(1)], dim=0),
+                torch.cat([j_venue, r_venue], dim=0),
+                torch.full((comb_r.shape[0]*2, 1), edge_entities['paper'], device=self.device),
+                torch.full((comb_r.shape[0]*2, 1), edge_entities['venue'], device=self.device)
+            ], dim=1)
+        else:
+            venue_non_edges = torch.empty((0, 5), dtype=torch.long, device=self.device)
 
         if tensor.shape[1] > 0:
             unique_targets = tensor[1].unique()
@@ -121,26 +145,8 @@ class mini_batches_fast(mini_batches_code):
         else:
             non_edges_tensor = torch.empty((0, 5), dtype=torch.long, device=self.device)
 
-        comb_r, comb_j = torch.combinations(random_sample_tensor, r=2).unbind(1)
-        r_venue = paper_venues[comb_r]
-        j_venue = paper_venues[comb_j]
-        unequal_mask = (r_venue != j_venue).flatten().nonzero(as_tuple=True)[0]
-
-        if unequal_mask.numel() > 0:
-            comb_r = comb_r[unequal_mask].squeeze()
-            comb_j = comb_j[unequal_mask].squeeze()
-            r_venue = r_venue[unequal_mask]
-            j_venue = j_venue[unequal_mask]
-
-            venue_non_edges = torch.cat([
-                torch.zeros((comb_r.shape[0]*2, 1), device=self.device, dtype=torch.long),
-                torch.cat([comb_r.unsqueeze(1), comb_j.unsqueeze(1)], dim=0),
-                torch.cat([j_venue, r_venue], dim=0),
-                torch.full((comb_r.shape[0]*2, 1), edge_entities['paper'], device=self.device),
-                torch.full((comb_r.shape[0]*2, 1), edge_entities['venue'], device=self.device)
-            ], dim=1)
+        if self.venues == True:
+            data_matrix = torch.cat((result_tensor, non_edges_tensor, venues_tensor, venue_non_edges), dim=0)
         else:
-            venue_non_edges = torch.empty((0, 5), dtype=torch.long, device=self.device)
-
-        data_matrix = torch.cat((result_tensor, non_edges_tensor, venues_tensor, venue_non_edges), dim=0)
+            data_matrix = torch.cat((result_tensor, non_edges_tensor), dim=0)
         return data_matrix, unique_tensor, random_sample
