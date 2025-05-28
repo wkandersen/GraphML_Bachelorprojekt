@@ -22,7 +22,7 @@ import matplotlib.cm as cm
 from scipy.spatial import distance
 
 
-embedding_dim = 8
+embedding_dim = 2
 b = 1
 save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b{b}.pt')
 paper_c_paper_train = save['paper_c_paper_train']
@@ -157,7 +157,7 @@ for i in range(num_epochs):
             break
 
         # Cleanup
-        if (i + 1) % 5 == 0:  # Or do it every iteration if memory is super tight
+        if (i + 1) % 50 == 0:  # Or do it every iteration if memory is super tight
             import gc
             gc.collect()
             torch.cuda.empty_cache()

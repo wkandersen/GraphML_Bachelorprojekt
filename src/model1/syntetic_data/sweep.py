@@ -58,6 +58,7 @@ def embed_valid_funct(paper_dict):
     lam = 0.01
     batch_size = 1
     embedding_dim = 2
+    neg_edges = 5
 
     save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b1.pt')
     paper_c_paper_train,paper_c_paper_valid = save['paper_c_paper_train'], save['paper_c_paper_valid']
@@ -227,7 +228,7 @@ def embed_valid_funct(paper_dict):
 
 # Sweep configuration
 sweep_configuration = {
-    "method": "random",  # Can also use "bayes"
+    "method": "bayes",  # Can also use "bayes"
     "name": "syn_sweep",
     "metric": {"goal": "minimize", "name": "loss"},
     "parameters": {
@@ -235,9 +236,10 @@ sweep_configuration = {
         "lr": {"values": [0.01,0.1,0.5]},
         "alpha": {"values": [0.01,0.1,0.5,1]},
         "lam": {"values": [0,0.001,0.01]},
+        "neg_ratio": {"values": [5,10,15]},
     }
 }
-trials = 3
+trials = 15
 
 def sweep_objective():
     run = wandb.init()
@@ -259,8 +261,7 @@ def sweep_objective():
 
     embed_dict = save['collected_embeddings']
 
-    loss_function = LossFunction(alpha=config.alpha,weight=config.weight,lam=config.lam,venue_weight=config.venue_weight,use_regularization=True)
-    N_emb = NodeEmbeddingTrainer()
+    loss_function = LossFunction(alpha=config.alpha,weight=config.weight,lam=config.lam,venue_weight=config.venue_weight,neg_ratio=config.neg_ratio,use_regularization=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
