@@ -27,20 +27,23 @@ sweep_configuration = {
     "name": "syn_sweep",
     "metric": {"goal": "minimize", "name": "loss"},
     "parameters": {
-        "batch_size": {"values": [10]},
-        "num_epochs": {"values": [15]},
-        "lr": {"values": [0.1,0.01]},
-        "alpha": {"values": [0.01,1]},
-        "lam": {"values": [0,0.001]},
-        "weight": {"values": [0.01,0.1,1]},
-        "venue_weight": {"values": [10,50,100]},
+        "batch_size": {"values": [32,64,128]},
+        "lr": {"values": [0.01,0.1,0.5]},
+        "alpha": {"values": [0.01,0.1,0.5,1]},
+        "lam": {"values": [0,0.001,0.01]},
     }
 }
 trials = 15
 
 def sweep_objective():
     run = wandb.init()
+
+
     config = wandb.config
+    config.weight = 0.1
+    config.venue_weight = 100
+    config.num_epochs = 100
+
     embedding_dim = 8
     b = 1
     save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b{b}.pt')
@@ -52,7 +55,7 @@ def sweep_objective():
 
     embed_dict = save['collected_embeddings']
 
-    loss_function = LossFunction(alpha=config.alpha,weight=config.weight,lam=config.lam,venue_weight=config.venue_weight)
+    loss_function = LossFunction(alpha=config.alpha,weight=config.weight,lam=config.lam,venue_weight=config.venue_weight,use_regularization=True)
     N_emb = NodeEmbeddingTrainer()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
