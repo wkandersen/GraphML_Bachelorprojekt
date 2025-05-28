@@ -12,6 +12,7 @@ from datetime import datetime
 from ogb.nodeproppred import Evaluator
 import traceback
 from collections import defaultdict
+import matplotlib.pyplot as plt
 
 set_seed(45)
 
@@ -56,8 +57,9 @@ l_prev = list(valid_exclusive)
 predictions = {}
 
 counter = 0
+acc = []
 for i in range(num_iterations):
-    mini_b = mini_batches_fast(paper_c_paper_valid, l_prev, batch_size, ('paper', 'cites', 'paper'), data,citation_dict, all_papers,venues=False)
+    mini_b = mini_batches_fast(paper_c_paper_valid, l_prev, batch_size, ('paper', 'cites', 'paper'), data,citation_dict, all_papers,venues=True)
     dm, l_next, random_sample = mini_b.data_matrix()
     # print(random_sample)
     # print(paper_c_paper_valid)
@@ -71,20 +73,6 @@ for i in range(num_iterations):
 
     test1 = dm[dm[:, 0] == 1]
     list_test = test1[:, 2].unique().tolist()
-
-    # mini_btrain1 = mini_batches_fast(paper_c_paper_train, dm[:, 2].tolist(), len(dm[:, 2]), ('paper', 'cites', 'paper'), data,citation_dict, all_papers)
-    # dmtrain1, ultrain1, random_sampletrain1 = mini_btrain1.data_matrix()
-
-    # test1 = dmtrain1[dmtrain1[:, 4] != 4]
-    # test2 = test1[test1[:, 0] == 1]
-    # list_test = test2[:, 2].unique().tolist()
-
-    # concat_dm = torch.cat((dm, dmtrain1), 0)
-    # rows = [[0, random_sample[0], test_item, 0, 0] for test_item in list_test]
-    # tensor_result = torch.tensor(rows).to(device)
-    # concat_dm = concat_dm.to(device)
-    # tensor_result = tensor_result.to(device)
-    # final = torch.cat((concat_dm, tensor_result), 0).to(device)
 
     embedding_list = []
     for test_item in list_test:
@@ -102,7 +90,6 @@ for i in range(num_iterations):
 
 
     paper_dict['paper'][random_sample[0]] = new_embedding
-    # print(paper_dict['paper'][random_sample[0]])
     new_optimizer = torch.optim.Adam([paper_dict['paper'][random_sample[0]]], lr=lr)
 
 
@@ -166,6 +153,8 @@ for i in range(num_iterations):
 
     evaluator = Evaluator(name='ogbn-mag')
     result = evaluator.eval({'y_true': y_true, 'y_pred': y_pred})
+    acc.append(result['acc'])
+
 
     l_prev = l_next
     new_embedding = new_embedding.detach()
@@ -195,3 +184,10 @@ plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=filtered_paper_di
     })
 
 print(counter)
+
+plt.plot(range(1, len(acc) + 1), acc, marker='o')
+plt.xlabel('Run Number')
+plt.ylabel('Accuracy')
+plt.title('Accuracy over Runs')
+plt.grid(True)
+plt.show()

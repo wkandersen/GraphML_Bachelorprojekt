@@ -8,8 +8,11 @@ from collections import Counter
 from Packages.plot_embeddings import set_seed
 
 set_seed(69)
+embedding_dim = 8
+a = -1
+b = -a
 
-n_samples = 2500
+n_samples = 25000
 # 1) Define our four quadrant means and identical isotropic covariances
 mean = 0.25
 means = np.array([
@@ -198,10 +201,6 @@ paper_c_paper_test=edges_set(num_edges=num_edges_test,range_i0=i0test,range_i1=i
 print(i0valid,i1valid)
 
 print(paper_c_paper_test.shape,paper_c_paper_train.shape,paper_c_paper_valid.shape)
-
-embedding_dim = 8
-a = -1
-b = -a
 
 collected_embeddings = {
     'paper': {},

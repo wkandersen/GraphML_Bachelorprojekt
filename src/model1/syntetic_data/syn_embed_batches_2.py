@@ -119,8 +119,9 @@ for i in range(num_epochs):
         dm = dm.to(device)
         optimizer.zero_grad()
         loss = loss_function.compute_loss(embed_dict, dm)
+        if len(dm_pap_pap) > 0:
+            loss_pap = loss_function.compute_loss(embed_dict,dm_pap_pap)
         loss_ven = loss_function.compute_loss(embed_dict,dm_ven_pap)
-        loss_pap = loss_function.compute_loss(embed_dict,dm_pap_pap)
         loss.backward()
         optimizer.step()
 
@@ -138,7 +139,8 @@ for i in range(num_epochs):
         # Update node list for the next iteration
         loss_pr_iteration.append(loss.detach().item())
         loss_ven_iteration.append(loss_ven.detach().item())
-        loss_pap_iteration.append(loss_pap.detach().item())
+        if len(dm_pap_pap) > 0:
+            loss_pap_iteration.append(loss_pap.detach().item())
 
         l_prev = l_next
 
@@ -250,7 +252,3 @@ for group_key in embed_dict:  # 'paper', 'venue'
         embed_dict[group_key][id_key] = embed_dict[group_key][id_key].detach().clone().cpu()
 
 torch.save(embed_dict, f"src/model1/syntetic_data/embed_dict/embed_dict_{text}.pt")
-
-print(embed_dict['paper'][0])
-print(embed_dict['venue'][0])
-

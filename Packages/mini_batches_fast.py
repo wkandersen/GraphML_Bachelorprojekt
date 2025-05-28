@@ -68,11 +68,12 @@ class mini_batches_fast(mini_batches_code):
 
         tensor, random_sample, unique_tensor = self.get_batch()
 
+        edge_type1 = edge_entities[self.edge_type[0]]
+        edge_type2 = edge_entities[self.edge_type[2]]
+
         if tensor.shape[1] == 0:
             result_tensor = torch.empty((0, 5), dtype=torch.long, device=self.device)
         else:
-            edge_type1 = edge_entities[self.edge_type[0]]
-            edge_type2 = edge_entities[self.edge_type[2]]
             ones = torch.ones(tensor.shape[1], device=self.device, dtype=torch.long)
             result_tensor = torch.stack([
                 ones,
@@ -102,8 +103,8 @@ class mini_batches_fast(mini_batches_code):
         unequal_mask = (r_venue != j_venue).flatten().nonzero(as_tuple=True)[0]
 
         if unequal_mask.numel() > 0:
-            comb_r = comb_r[unequal_mask].squeeze()
-            comb_j = comb_j[unequal_mask].squeeze()
+            comb_r = comb_r[unequal_mask].flatten()
+            comb_j = comb_j[unequal_mask].flatten()
             r_venue = r_venue[unequal_mask]
             j_venue = j_venue[unequal_mask]
 
