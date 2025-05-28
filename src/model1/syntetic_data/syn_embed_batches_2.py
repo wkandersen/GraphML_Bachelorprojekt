@@ -210,13 +210,15 @@ alpha = 0.1
 lam = 0.1
 weight = 1
 venue_weight = 100
+neg_ratio = 5
+
 folder = 'test'
 # folder_specifik = f'false'
 folder_specifik = f''
 # file_before = 'before_200_base'
 file_after = f'src/model1/syntetic_data/Plots/{folder}/after_{folder_specifik}.png'
 
-loss_function = LossFunction(alpha=alpha,weight=weight,lam=lam,venue_weight=venue_weight)
+loss_function = LossFunction(alpha=alpha,weight=weight,lam=lam,venue_weight=venue_weight,neg_ratio=neg_ratio)
 N_emb = NodeEmbeddingTrainer()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -370,9 +372,6 @@ loss_plot_path = f"src/model1/syntetic_data/Plots/{folder}/loss_plot_{folder_spe
 plt.savefig(loss_plot_path, dpi=300)
 print(f"Loss plot saved to: {loss_plot_path}")
 # plt.show()
-
-
-
 
 
 # with open("embedding_output_before.txt") as f1, open("embedding_output_after.txt") as f2:
