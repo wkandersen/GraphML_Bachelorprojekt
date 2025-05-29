@@ -16,7 +16,7 @@ def set_seed(seed=42):
 venue_value =torch.load('dataset/ogbn_mag/processed/venue_value.pt')
 saved = torch.load('checkpoint/checkpoint_iter_64_8_50_epoch_18_weight_0.1_with_optimizer.pt')
 embed_dict = saved['collected_embeddings']
-path = 'epoch_18_dim_8'
+path = 'epoch_18_dim_8_sample_1000'
 
 def plot_paper_venue_embeddings(
     venue_value, 
@@ -147,7 +147,7 @@ def plot_paper_venue_embeddings(
     else:
         plt.show()
 
-plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=embed_dict,filename=path,dim=2)
+plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=embed_dict,sample_size=1000,filename=path,dim=2)
 def plot_pos_neg_histograms(pos_probs, neg_probs, epoch, batch):
     plt.figure(figsize=(10, 5))
 
