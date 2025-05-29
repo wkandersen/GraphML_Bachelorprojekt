@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 def set_seed(seed=42):
     import random
@@ -11,6 +12,11 @@ def set_seed(seed=42):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+venue_value =torch.load('dataset/ogbn_mag/processed/venue_value.pt')
+saved = torch.load('checkpoint/checkpoint_iter_64_8_50_epoch_18_weight_0.1_with_optimizer.pt')
+embed_dict = saved['collected_embeddings']
+path = 'epoch_18_dim_8'
 
 def plot_paper_venue_embeddings(
     venue_value, 
@@ -141,7 +147,7 @@ def plot_paper_venue_embeddings(
     else:
         plt.show()
 
-
+plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=embed_dict,filename=path,dim=2)
 def plot_pos_neg_histograms(pos_probs, neg_probs, epoch, batch):
     plt.figure(figsize=(10, 5))
 
