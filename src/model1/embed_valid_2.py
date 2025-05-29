@@ -30,7 +30,7 @@ embedding_dim = 8
 
 run = wandb.init(
     project="Bachelor_projekt",
-    name=f"embed_valid_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
+    name=f"embed_valid_2_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
     config={
         "batch_size": batch_size,
         "num_epochs": num_epochs,

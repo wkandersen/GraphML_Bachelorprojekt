@@ -48,7 +48,7 @@ embedding_dim = 8
 
 run = wandb.init(
     project="Bachelor_projekt",
-    name=f"embed_valid_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
+    name=f"embed_valid_3_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
     config={
         "batch_size": batch_size,
         "num_epochs": num_epochs,
@@ -159,8 +159,6 @@ for i in range(num_iterations):
         new_embedding = torch.nn.Parameter(mean_tensor.clone().to(device))
 
         # print(f"Element-wise mean tensor: {mean_tensor}")
-
-
 
     paper_dict['paper'][random_sample[0]] = new_embedding
     new_optimizer = torch.optim.Adam([paper_dict['paper'][random_sample[0]]], lr=lr)
