@@ -14,6 +14,24 @@ import traceback
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
+def get_mean_median_embedding(paper_dict, ent_type='paper', method='mean'):
+    # Extract all embeddings for the given entity type
+    embeddings = list(paper_dict[ent_type].values())  # list of tensors
+
+    if not embeddings:
+        raise ValueError(f"No embeddings found for entity type: {ent_type}")
+
+    # Stack into a single tensor of shape [N, D]
+    stacked = torch.stack(embeddings, dim=0)
+
+    if method == 'mean':
+        return stacked.mean(dim=0)  # [D]
+    elif method == 'median':
+        return stacked.median(dim=0).values  # [D]
+    else:
+        raise ValueError(f"Unsupported method: {method}")
+
+
 set_seed(45)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -24,7 +42,7 @@ alpha = 0.1
 eps = 0.001
 lam = 0.01
 batch_size = 1
-embedding_dim = 8
+embedding_dim = 2
 
 save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b1.pt')
 paper_c_paper_train,paper_c_paper_valid = save['paper_c_paper_train'], save['paper_c_paper_valid']
@@ -41,6 +59,9 @@ paper_dict = check
 for ent_type in paper_dict:
     for k, v in paper_dict[ent_type].items(): 
         paper_dict[ent_type][k] = v.to(device)
+
+mean_emb = get_mean_median_embedding(paper_dict=paper_dict)
+median_emb = get_mean_median_embedding(paper_dict=paper_dict,method='median')
 
 citation_dict = defaultdict(list)
 for src, tgt in zip(paper_c_paper_train[0], paper_c_paper_train[1]):
@@ -63,12 +84,46 @@ for i in range(num_iterations):
     dm, l_next, random_sample = mini_b.data_matrix()
     # print(random_sample)
     # print(paper_c_paper_valid)
-    if len(dm) < 1:
-        print(f"[SKIP] Too few nodes for venue comparison: {random_sample}")
-        counter += 1
-        continue
 
     dm = dm[dm[:, 4] != 4]
+
+    if len(dm) < 1:
+        # Assign mean embedding to the sample
+        paper_dict['paper'][random_sample[0]] = torch.nn.Parameter(median_emb.clone().to(device))
+
+        # Directly evaluate using the mean embedding (skip training)
+        true_label = int(venue_value[random_sample[0]].cpu().numpy())
+
+        logi_f = []
+        for j in range(len(paper_dict['venue'])):
+            paper_emb = paper_dict['paper'][random_sample[0]].to(device)
+            venue_emb = paper_dict['venue'][j].to(device)
+            dist = torch.norm(paper_emb - venue_emb) ** 2
+            logi = torch.sigmoid(alpha - dist)
+            logi_f.append((logi.item(), j))
+
+        logits, node_ids = zip(*logi_f)
+        logi_f_tensor = torch.tensor(logits, device=device)
+        softma = F.softmax(logi_f_tensor, dim=0)
+
+        sorted_probs, sorted_indices = torch.sort(softma, descending=True)
+        ranked_venue_ids = [node_ids[i] for i in sorted_indices.tolist()]
+        true_class_rank = ranked_venue_ids.index(true_label) + 1 if true_label in ranked_venue_ids else -1
+
+        predicted_node_id = ranked_venue_ids[0]
+        highest_prob_value = sorted_probs[0].item()
+        predictions[random_sample[0]] = (true_label, predicted_node_id, true_class_rank)
+
+        items = sorted(predictions.items())
+        y_true = torch.tensor([true_pred[0] for _, true_pred in items]).view(-1, 1)
+        y_pred = torch.tensor([true_pred[1] for _, true_pred in items]).view(-1, 1)
+
+        evaluator = Evaluator(name='ogbn-mag')
+        result = evaluator.eval({'y_true': y_true, 'y_pred': y_pred})
+        acc.append(result['acc'])
+
+        # l_prev = l_next
+        continue
     # print(dm)
 
     test1 = dm[dm[:, 0] == 1]
@@ -115,7 +170,7 @@ for i in range(num_iterations):
         if len(prev_losses) > patience:
             recent = prev_losses[-patience:]
             if max(recent) - min(recent) < tolerance:
-                print(f"[EARLY STOP] Loss converged after {epoch + 1} epochs.")
+                print(f"[EARLY STOP] Loss converged after {epoch} epochs.")
                 break
 
     # print(paper_dict['paper'][random_sample[0]])
@@ -158,11 +213,6 @@ for i in range(num_iterations):
 
     l_prev = l_next
     new_embedding = new_embedding.detach()
-    del new_optimizer
-
-    if (i + 1) % 5 == 0:
-        gc.collect()
-        torch.cuda.empty_cache()
 
 save_dir = f'dataset/ogbn_mag/processed/Predictions'
 os.makedirs(save_dir, exist_ok=True)

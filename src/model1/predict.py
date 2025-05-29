@@ -10,7 +10,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 import numpy as np
 
 emb_dim = 2
-predictions = torch.load(f'dataset/ogbn_mag/processed/Predictions/pred_dict_2.pt')
+predictions = torch.load(f'dataset/ogbn_mag/processed/Predictions/pred_dict_{emb_dim}.pt')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
