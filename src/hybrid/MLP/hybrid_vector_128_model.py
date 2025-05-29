@@ -16,47 +16,37 @@ from sklearn.metrics import accuracy_score
 # Set working directory
 def prep_data():
     try:
-        data_train = pd.read_csv('dataset/ogbn_mag/split/time/paper/train.csv.gz', compression='gzip',header = None)
-        data_valid = pd.read_csv('dataset/ogbn_mag/split/time/paper/valid.csv.gz', compression='gzip',header = None)
-        data_test = pd.read_csv('dataset/ogbn_mag/split/time/paper/test.csv.gz', compression='gzip',header = None)
+        # Load filtered paper IDs instead of raw CSV splits
+        nums_train = torch.load("dataset/ogbn_mag/processed/nums_train_filtered.pt")
+        nums_valid = torch.load("dataset/ogbn_mag/processed/nums_valid_filtered.pt")
+        nums_test = torch.load("dataset/ogbn_mag/processed/nums_test_filtered.pt")
     except FileNotFoundError:
-        os.chdir("..")
-        data_train = pd.read_csv('dataset/ogbn_mag/split/time/paper/train.csv.gz', compression='gzip',header = None)
-        data_valid = pd.read_csv('dataset/ogbn_mag/split/time/paper/valid.csv.gz', compression='gzip',header = None)
-        data_test = pd.read_csv('dataset/ogbn_mag/split/time/paper/test.csv.gz', compression='gzip',header = None)
+        # Fallback to original CSV loading if filtered files not found
+        data_train = pd.read_csv('dataset/ogbn_mag/split/time/paper/train.csv.gz', compression='gzip', header=None)
+        data_valid = pd.read_csv('dataset/ogbn_mag/split/time/paper/valid.csv.gz', compression='gzip', header=None)
+        data_test = pd.read_csv('dataset/ogbn_mag/split/time/paper/test.csv.gz', compression='gzip', header=None)
+
+        nums_train = torch.tensor(data_train[0])
+        nums_valid = torch.tensor(data_valid[0])
+        nums_test = torch.tensor(data_test[0])
 
     data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
-    # Extract edges for "paper" -> "cites" -> "paper"
     X = data.x_dict[('paper')]
     y = data['y_dict']['paper']
 
-
-    # Unique paper IDs to keep (Ensure it's a PyTorch tensor)
-    nums_valid = torch.tensor(data_valid[0])
-    nums_test = torch.tensor(data_test[0])
-    nums_train = torch.tensor(data_train[0])
-
-
-    # Filter the dataset using indices
     X_train, y_train = X[nums_train], y[nums_train]
     X_valid, y_valid = X[nums_valid], y[nums_valid]
     X_test, y_test = X[nums_test], y[nums_test]
 
-    y_train = y[nums_train].long()
-    y_valid = y[nums_valid].long()
-    y_test = y[nums_test].long()
-
-    # train_mean = X_train.mean(dim=0)
-    # train_std = X_train.std(dim=0)
-    # train_std[train_std < 1e-6] = 1.0  # Prevent divide by 0
-
-    # X_train = (X_train - train_mean) / train_std
-    # X_valid = (X_valid - train_mean) / train_std
-    # X_test = (X_test - train_mean) / train_std
+    y_train = y_train.long()
+    y_valid = y_valid.long()
+    y_test = y_test.long()
 
 
-    return X_train, y_train, X_valid, y_valid, X_test, y_test, y
+    return X_train, y_train, X_valid, y_valid, X_test, y_test, y, nums_train, nums_valid, nums_test
+
+
 
 
 
@@ -89,56 +79,35 @@ class VenueClassifier(pl.LightningModule):
         self.epoch_train_losses = []
         self.epoch_test_losses = []
 
-        # self.model = nn.Sequential(
-        #     nn.Linear(input_dim, hidden_dim),
-        #     nn.BatchNorm1d(hidden_dim),
-        #     nn.ReLU(),
-        #     nn.Dropout(dropout_rate),
-        #     nn.Linear(hidden_dim, hidden_dim),
-        #     nn.BatchNorm1d(hidden_dim),
-        #     nn.ReLU(),
-        #     nn.Dropout(dropout_rate),
-        #     nn.Linear(hidden_dim, num_classes),
-        #     nn.LogSoftmax(dim=-1)
-        # )
-
-        # self.criterion = nn.NLLLoss()
-
-
-        hidden_dim2 = hidden_dim // 2
-        hidden_dim3 = hidden_dim2 // 2
-
-        self.encoder = nn.Sequential(
+        self.model = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout(p=dropout_rate),
-
-            nn.Linear(hidden_dim, hidden_dim2),
-            nn.BatchNorm1d(hidden_dim2),
-            nn.ReLU(inplace=True),
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.BatchNorm1d(hidden_dim // 2),
+            nn.ReLU(),
             nn.Dropout(p=dropout_rate),
-
-            nn.Linear(hidden_dim2, hidden_dim3),
-            nn.BatchNorm1d(hidden_dim3),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=dropout_rate),
-            nn.Linear(hidden_dim3 // 2, 2)
+            nn.Linear(hidden_dim // 2, 2)  # 2D embedding
         )
 
+        # Classifier head → logits
         self.classifier = nn.Linear(2, num_classes)
+
+        # Loss function
         self.criterion = nn.CrossEntropyLoss()
 
-        
+
     def forward(self, x):
-        embedding = self.encoder(x)             # 2D embedding
+        embedding = self.model(x)             # 2D embedding
         logits = self.classifier(embedding)     # Raw logits
         return logits
     
     def get_embedding(self, x):
+        """Return the 2D embedding (for visualization, etc.)"""
         self.eval()
         with torch.no_grad():
-            return self.encoder(x)
+            return self.model(x)
 
     def training_step(self, batch, batch_idx):
         x, y = batch

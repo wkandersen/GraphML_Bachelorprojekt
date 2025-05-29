@@ -7,11 +7,11 @@ import wandb
 import os
 torch.set_float32_matmul_precision('medium')
 
-dir_path = "/path/to/some/directory"
-# Set root directory for all PyTorch Lightning outputs
-PL_ROOT = os.getenv('PL_ROOT', '/work3/s224225/pytorch_lightning')
-# Ensure the directory exists
-os.makedirs(PL_ROOT, exist_ok=True)
+# dir_path = "/path/to/some/directory"
+# # Set root directory for all PyTorch Lightning outputs
+# PL_ROOT = os.getenv('PL_ROOT', '/work3/s224225/pytorch_lightning')
+# # Ensure the directory exists
+# os.makedirs(PL_ROOT, exist_ok=True)
 
 
 def main():
