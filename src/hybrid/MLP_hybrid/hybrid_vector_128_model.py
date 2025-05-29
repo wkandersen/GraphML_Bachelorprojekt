@@ -89,26 +89,26 @@ class VenueClassifier(pl.LightningModule):
         self.epoch_train_losses = []
         self.epoch_test_losses = []
 
-        self.model = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, num_classes),
-            nn.LogSoftmax(dim=-1)
-        )
+        # self.model = nn.Sequential(
+        #     nn.Linear(input_dim, hidden_dim),
+        #     nn.BatchNorm1d(hidden_dim),
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout_rate),
+        #     nn.Linear(hidden_dim, hidden_dim),
+        #     nn.BatchNorm1d(hidden_dim),
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout_rate),
+        #     nn.Linear(hidden_dim, num_classes),
+        #     nn.LogSoftmax(dim=-1)
+        # )
 
-        self.criterion = nn.NLLLoss()
+        # self.criterion = nn.NLLLoss()
 
 
         hidden_dim2 = hidden_dim // 2
         hidden_dim3 = hidden_dim2 // 2
 
-        self.model = nn.Sequential(
+        self.encoder = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(inplace=True),
@@ -123,15 +123,22 @@ class VenueClassifier(pl.LightningModule):
             nn.BatchNorm1d(hidden_dim3),
             nn.ReLU(inplace=True),
             nn.Dropout(p=dropout_rate),
-
-            nn.Linear(hidden_dim3, num_classes)
+            nn.Linear(hidden_dim3 // 2, 2)
         )
 
+        self.classifier = nn.Linear(2, num_classes)
         self.criterion = nn.CrossEntropyLoss()
 
         
     def forward(self, x):
-        return self.model(x)
+        embedding = self.encoder(x)             # 2D embedding
+        logits = self.classifier(embedding)     # Raw logits
+        return logits
+    
+    def get_embedding(self, x):
+        self.eval()
+        with torch.no_grad():
+            return self.encoder(x)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
