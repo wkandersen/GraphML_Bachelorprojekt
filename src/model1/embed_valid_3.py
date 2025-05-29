@@ -70,9 +70,6 @@ venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_locati
 
 num_iterations = len(paper_c_paper_valid[0])
 
-check = torch.load(f'src/model1/syntetic_data/embed_dict/embed_dict_test.pt', map_location=device)
-paper_dict = check
-
 # Move all embeddings to device 
 for ent_type in paper_dict:
     for k, v in paper_dict[ent_type].items(): 
