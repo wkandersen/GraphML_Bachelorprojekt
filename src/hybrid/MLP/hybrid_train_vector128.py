@@ -38,7 +38,7 @@ def main():
     # wandb_logger = WandbLogger(project="Bachelor_projekt", log_model=True)
 
     trainer = pl.Trainer(
-        max_epochs=1,
+        max_epochs=100,
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
         devices=1,
         # logger=wandb_logger,
@@ -63,9 +63,9 @@ def main():
     embedding_dict_valid = {int(pid): emb.tolist() for pid, emb in zip(ids_valid, embeddings_valid)}
     embedding_dict_test = {int(pid): emb.tolist() for pid, emb in zip(ids_test, embeddings_test)}
 
-    torch.save(embedding_dict_train, "src/hybrid/MLP/embeddings/train_embeddings_dict.pt")
-    torch.save(embedding_dict_valid, "src/hybrid/MLP/embeddings/valid_embeddings_dict.pt")
-    torch.save(embedding_dict_test, "src/hybrid/MLP/embeddings/test_embeddings_dict.pt")
+    torch.save(embedding_dict_train, f"src/hybrid/MLP/embeddings/train_embeddings_dict_max_epochs{trainer.max_epochs}.pt")
+    torch.save(embedding_dict_valid, f"src/hybrid/MLP/embeddings/valid_embeddings_dict_max_epochs{trainer.max_epochs}.pt")
+    torch.save(embedding_dict_test, f"src/hybrid/MLP/embeddings/test_embeddings_dict_max_epochs{trainer.max_epochs}.pt")
 
     print("2D embeddings saved to the 'embeddings' folder.")
 
