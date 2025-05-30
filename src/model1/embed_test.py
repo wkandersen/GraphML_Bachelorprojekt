@@ -5,8 +5,8 @@ import gc
 from Packages.mini_batches_fast import mini_batches_fast
 from Packages.loss_function import LossFunction
 from Packages.plot_embeddings import set_seed, plot_paper_venue_embeddings
-from Packages.data_divide import paper_c_paper_train, paper_c_paper_valid, data
-# from Packages.synthetic_data_mixture import paper_c_paper_train, paper_c_paper_valid, data,venues_values
+from Packages.data_divide import paper_c_paper_train, paper_c_paper_test, data
+# from Packages.synthetic_data_mixture import paper_c_paper_train, paper_c_paper_test, data,venues_values
 import torch.nn as nn
 import torch.nn.functional as F
 from datetime import datetime
@@ -48,7 +48,7 @@ embedding_dim = 8
 
 run = wandb.init(
     project="Bachelor_projekt",
-    name=f"embed_valid_3_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
+    name=f"test_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
     config={
         "batch_size": batch_size,
         "num_epochs": num_epochs,
@@ -60,7 +60,7 @@ run = wandb.init(
 )
 
 # save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b1.pt')
-# paper_c_paper_train,paper_c_paper_valid = save['paper_c_paper_train'], save['paper_c_paper_valid']
+# paper_c_paper_train,paper_c_paper_test = save['paper_c_paper_train'], save['paper_c_paper_test']
 # data,venue_value = save['data'], save['venue_value']
 # print(venue_value)
 
@@ -68,7 +68,7 @@ check = torch.load(f'checkpoint/checkpoint_iter_64_8_50_epoch_18_weight_0.1_with
 paper_dict = check['collected_embeddings']
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device)
 
-num_iterations = len(paper_c_paper_valid[0])
+num_iterations = len(paper_c_paper_test[0])
 
 # Move all embeddings to device 
 for ent_type in paper_dict:
@@ -87,7 +87,7 @@ all_papers = list(citation_dict.keys())
 loss_function = LossFunction(alpha=alpha, eps=eps, use_regularization=False)
 
 unique_train = set(paper_c_paper_train.flatten().unique().tolist())
-unique_valid = set(paper_c_paper_valid.flatten().unique().tolist())
+unique_valid = set(paper_c_paper_test.flatten().unique().tolist())
 valid_exclusive = unique_valid - unique_train
 l_prev = list(valid_exclusive)
 predictions = {}
@@ -95,10 +95,10 @@ predictions = {}
 counter = 0
 acc = []
 for i in range(num_iterations):
-    mini_b = mini_batches_fast(paper_c_paper_valid, l_prev, batch_size, ('paper', 'cites', 'paper'), data,citation_dict, all_papers,venues=True)
+    mini_b = mini_batches_fast(paper_c_paper_test, l_prev, batch_size, ('paper', 'cites', 'paper'), data,citation_dict, all_papers,venues=True)
     dm, l_next, random_sample = mini_b.data_matrix()
     # print(random_sample)
-    # print(paper_c_paper_valid)
+    # print(paper_c_paper_test)
 
     dm = dm[dm[:, 4] != 4]
 

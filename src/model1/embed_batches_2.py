@@ -64,7 +64,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 print("starting")
-checkpoint_epoch = 4
+checkpoint_epoch = 18
 
 # Load initial embeddings
 # embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_1.pt", map_location=device)
@@ -108,7 +108,7 @@ print(f'Neg_ratio: {args.neg_ratio}')
 
 run = wandb.init(
     project="Bachelor_projekt",
-    name=f"part_2_5_neg_run_{datetime.now():%Y-%m-%d_%H-%M-%S}, {embedding_dim} and {venue_weight}",
+    name=f"part_4_5_neg_run_{datetime.now():%Y-%m-%d_%H-%M-%S}, {embedding_dim} and {venue_weight}",
     config={
         "batch_size": batch_size,
         "num_epochs": num_epochs,
@@ -206,7 +206,7 @@ for i in range(num_epochs):
         trainer_path = os.path.join(checkpoint_dir, f"trainer_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
         embed_path = os.path.join(checkpoint_dir, f"embed_dict_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
         l_prev_path = os.path.join(checkpoint_dir, f"l_prev_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
-        checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id+48}_weight_{weight}_with_optimizer.pt")
+        checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id+checkpoint_epoch}_weight_{weight}_with_optimizer.pt")
 
 
         # Save checkpoint with both embeddings and optimizer state
