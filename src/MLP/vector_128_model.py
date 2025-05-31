@@ -47,13 +47,6 @@ def prep_data():
     y_valid = y[nums_valid].long()
     y_test = y[nums_test].long()
 
-    # train_mean = X_train.mean(dim=0)
-    # train_std = X_train.std(dim=0)
-    # train_std[train_std < 1e-6] = 1.0  # Prevent divide by 0
-
-    # X_train = (X_train - train_mean) / train_std
-    # X_valid = (X_valid - train_mean) / train_std
-    # X_test = (X_test - train_mean) / train_std
 
 
     return X_train, y_train, X_valid, y_valid, X_test, y_test, y

@@ -68,7 +68,7 @@ checkpoint_epoch = 18
 
 # Load initial embeddings
 # embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_1.pt", map_location=device)
-checkpoint = torch.load(f'checkpoint/checkpoint_iter_64_{embedding_dim}_50_epoch_{checkpoint_epoch}_weight_0.1_with_optimizer.pt',map_location=device)
+checkpoint = torch.load(f'checkpoint/2025-05-26_17-09-15/checkpoint_iter_100_2_50_epoch_48_weight_0.1_with_optimizer.pt',map_location=device)
 embed_dict = checkpoint['collected_embeddings']
 optimizer_state = checkpoint['optimizer_state']
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
