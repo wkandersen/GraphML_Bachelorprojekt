@@ -5,7 +5,7 @@ import gc
 from Packages.mini_batches_fast import mini_batches_fast
 from Packages.loss_function import LossFunction
 from Packages.plot_embeddings import set_seed, plot_paper_venue_embeddings
-from Packages.data_divide import paper_c_paper_train, paper_c_paper_test, data
+from Packages.data_divide import paper_c_paper_train, paper_c_paper_test, data, venue_value
 import torch.nn as nn
 import torch.nn.functional as F
 from datetime import datetime
@@ -34,7 +34,7 @@ def get_mean_median_embedding(paper_dict, ent_type='paper', method='mean'):
 
 
 set_seed(45)
-# wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
+wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 lr = 0.1
@@ -42,27 +42,27 @@ num_epochs = 100
 alpha = 0.1
 eps = 0.001
 lam = 0.01
-batch_size = 8        # Example: process 8 test nodes at once
-embedding_dim = 2
+batch_size = 64        # Example: process 64 test nodes at once
+embedding_dim = 8
 
-# run = wandb.init(
-#     project="Bachelor_projekt",
-#     name=f"test_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
-#     config={
-#         "batch_size": batch_size,
-#         "num_epochs": num_epochs,
-#         "lr": lr,
-#         "alpha": alpha,
-#         "lam": lam,
-#         "emb_dim": embedding_dim
-#     },
-# )
+run = wandb.init(
+    project="Bachelor_projekt",
+    name=f"test_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
+    config={
+        "batch_size": batch_size,
+        "num_epochs": num_epochs,
+        "lr": lr,
+        "alpha": alpha,
+        "lam": lam,
+        "emb_dim": embedding_dim
+    },
+)
 
 # Load checkpointed embeddings and venue mappings
 
-save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b1.pt')
-paper_c_paper_train,paper_c_paper_test = save['paper_c_paper_train'], save['paper_c_paper_test']
-data,venue_value = save['data'], save['venue_value']
+save = torch.load(f'checkpoint/2025-05-30_10-50-38/checkpoint_iter_64_{embedding_dim}_50_epoch_30_weight_0.1_with_optimizer.pt')
+# paper_c_paper_train,paper_c_paper_test = save['paper_c_paper_train'], save['paper_c_paper_test']
+# data,venue_value = save['data'], save['venue_value']
 paper_dict = save['collected_embeddings']
 
 # check = torch.load(
@@ -181,7 +181,7 @@ for i in range(num_iterations):
 
         current_loss = loss.item()
         prev_losses.append(current_loss)
-        # wandb.log({"batch_loss": current_loss})
+        wandb.log({"batch_loss": current_loss})
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {current_loss:.4f}")
 
         # Early stopping if the last `patience` losses differ by < tolerance
@@ -232,12 +232,12 @@ for i in range(num_iterations):
     evaluator = Evaluator(name='ogbn-mag')
     result = evaluator.eval({'y_true': y_true, 'y_pred': y_pred})
     acc.append(result['acc'])
-    # wandb.log({"Accuracy": result['acc']})
+    wandb.log({"Accuracy": result['acc']})
     print(f"Iteration {i + 1}/{num_iterations}, Accuracy: {result['acc']:.4f}")
 
     # Update remaining test nodes for next iteration
     # l_next is already a torch.Tensor; convert to a Python list of ints
-    l_prev = l_next.tolist()
+    l_prev = l_next
 
 # Save the predictions dictionary
 save_dir = 'dataset/ogbn_mag/processed/Predictions'

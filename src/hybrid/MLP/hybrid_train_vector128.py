@@ -38,7 +38,7 @@ def main():
     # wandb_logger = WandbLogger(project="Bachelor_projekt", log_model=True)
 
     trainer = pl.Trainer(
-        max_epochs=1,
+        max_epochs=100,
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
         devices=1,
         # logger=wandb_logger,

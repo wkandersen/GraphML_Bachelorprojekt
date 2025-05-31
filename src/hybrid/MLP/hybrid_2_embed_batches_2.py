@@ -43,7 +43,7 @@ embed_dict = save
 # data,venue_value = save['data'], save['venue_value']
 # embed_dict = save['collected_embeddings']
 # emb2d = save['emb2d']
-emb2d  = torch.load('src/hybrid/MLP/embeddings/train_embeddings_dict_max_epochs1.pt', map_location=device, weights_only=False)
+emb2d  = torch.load('src/hybrid/MLP/embeddings/train_embeddings_dict_max_epochs100.pt', map_location=device, weights_only=False)
 num_papers = len(paper_c_paper_train.unique())
 set_seed(69)
 text = 'test'
