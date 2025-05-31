@@ -38,7 +38,7 @@ def main():
     # wandb_logger = WandbLogger(project="Bachelor_projekt", log_model=True)
 
     trainer = pl.Trainer(
-        max_epochs=100,
+        max_epochs=1,
         accelerator="gpu" if torch.cuda.is_available() else "cpu",
         devices=1,
         # logger=wandb_logger,
@@ -59,9 +59,9 @@ def main():
 
     os.makedirs("src/hybrid/MLP/embeddings", exist_ok=True)
     # Convert paper IDs to ints for dictionary keys
-    embedding_dict_train = {int(pid): emb.tolist() for pid, emb in zip(ids_train, embeddings_train)}
-    embedding_dict_valid = {int(pid): emb.tolist() for pid, emb in zip(ids_valid, embeddings_valid)}
-    embedding_dict_test = {int(pid): emb.tolist() for pid, emb in zip(ids_test, embeddings_test)}
+    embedding_dict_train = {int(pid): emb for pid, emb in zip(ids_train, embeddings_train)}
+    embedding_dict_valid = {int(pid): emb for pid, emb in zip(ids_valid, embeddings_valid)}
+    embedding_dict_test = {int(pid): emb for pid, emb in zip(ids_test, embeddings_test)}
 
     torch.save(embedding_dict_train, f"src/hybrid/MLP/embeddings/train_embeddings_dict_max_epochs{trainer.max_epochs}.pt")
     torch.save(embedding_dict_valid, f"src/hybrid/MLP/embeddings/valid_embeddings_dict_max_epochs{trainer.max_epochs}.pt")
