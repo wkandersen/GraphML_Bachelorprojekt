@@ -20,6 +20,19 @@ def main():
 
     X_train, y_train, X_valid, y_valid, X_test, y_test, y, ids_train, ids_valid, ids_test = prep_data()
 
+    # check for overlapping IDs
+
+    # overlap in ids
+    print("Overlap in IDs between train and valid:", len(
+        set(ids_train) & set(ids_valid)
+    ))
+    print("Overlap in IDs between train and test:", len(
+        set(ids_train) & set(ids_test)
+    ))
+    print("Overlap in IDs between valid and test:", len(
+        set(ids_valid) & set(ids_test)
+    ))
+
 
     data_module = VenueDataModule(
         X_train, y_train, X_valid, y_valid, X_test, y_test,

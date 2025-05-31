@@ -15,20 +15,10 @@ from sklearn.metrics import accuracy_score
 
 # Set working directory
 def prep_data():
-    try:
-        # Load filtered paper IDs instead of raw CSV splits
-        nums_train = torch.load("dataset/ogbn_mag/processed/nums_train_filtered.pt")
-        nums_valid = torch.load("dataset/ogbn_mag/processed/nums_valid_filtered.pt")
-        nums_test = torch.load("dataset/ogbn_mag/processed/nums_test_filtered.pt")
-    except FileNotFoundError:
-        # Fallback to original CSV loading if filtered files not found
-        data_train = pd.read_csv('dataset/ogbn_mag/split/time/paper/train.csv.gz', compression='gzip', header=None)
-        data_valid = pd.read_csv('dataset/ogbn_mag/split/time/paper/valid.csv.gz', compression='gzip', header=None)
-        data_test = pd.read_csv('dataset/ogbn_mag/split/time/paper/test.csv.gz', compression='gzip', header=None)
-
-        nums_train = torch.tensor(data_train[0])
-        nums_valid = torch.tensor(data_valid[0])
-        nums_test = torch.tensor(data_test[0])
+    # Load filtered paper IDs instead of raw CSV splits
+    nums_train = torch.load("dataset/ogbn_mag/processed/nums_train_filtered.pt")
+    nums_valid = torch.load("dataset/ogbn_mag/processed/nums_valid_filtered.pt")
+    nums_test = torch.load("dataset/ogbn_mag/processed/nums_test_filtered.pt")
 
     data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
