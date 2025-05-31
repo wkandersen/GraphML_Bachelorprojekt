@@ -125,9 +125,14 @@ for i in range(num_epochs):
         # Move data to GPU
         dm = dm.to(device)
         optimizer.zero_grad()
-        loss = loss_function.compute_loss(hybrid_dict, dm)
+        loss = loss_function.compute_loss(embed_dict, dm)
+        print(f'before embed_dict: {embed_dict["paper"][random_sample[0]]}')
+        print(f'before hybrid_dict: {hybrid_dict["paper"][random_sample[0]]}')
+        print(f'Loss before backward: {loss.detach().item()}')
         loss.backward()
         optimizer.step()
+
+        print(f'after embed_dict: {embed_dict["paper"][random_sample[0]]}')
 
         with torch.no_grad():  # Prevent this op from being tracked in autograd
             for idx in combined_list:
