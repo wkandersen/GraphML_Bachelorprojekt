@@ -62,14 +62,69 @@ venue_value = {}
 for idx, value in enumerate(data['y_dict']['paper']):
     venue_value[idx] = value
 
-torch.save(venue_value, "dataset/ogbn_mag/processed/venue_value.pt")
+print("Train test:", len(
+    set(paper_c_paper_test[0].unique().tolist())
+      - set(paper_c_paper_train.flatten().unique().tolist())
+      - set(paper_c_paper_valid[0].unique().tolist())
+))
 
-# Extract unique filtered paper IDs for train, valid, test splits
-nums_train_filtered = paper_c_paper_train.unique()
-nums_valid_filtered = paper_c_paper_valid.unique()
-nums_test_filtered = paper_c_paper_test.unique()
+only_in_valid = set(paper_c_paper_valid[0].unique().tolist()) - set(paper_c_paper_train.flatten().unique().tolist())
+filtered_valid = paper_c_paper_valid[:, torch.isin(paper_c_paper_valid[0], torch.tensor(list(only_in_valid)))]
 
-# Save these filtered IDs for use later in prep_data
-torch.save(nums_train_filtered, "dataset/ogbn_mag/processed/nums_train_filtered.pt")
-torch.save(nums_valid_filtered, "dataset/ogbn_mag/processed/nums_valid_filtered.pt")
-torch.save(nums_test_filtered, "dataset/ogbn_mag/processed/nums_test_filtered.pt")
+only_in_test = set(paper_c_paper_test[0].unique().tolist()) - set(paper_c_paper_train.flatten().unique().tolist()) - set(paper_c_paper_valid[0].unique().tolist())
+
+filtered_test = paper_c_paper_test[:, torch.isin(paper_c_paper_test[0], torch.tensor(list(only_in_test)))]
+
+# print("Train test train:", len(set(paper_c_paper_test[0].unique().tolist()) & set(paper_c_paper_train.flatten().unique().tolist())))
+# print("Train test valid:", len(set(paper_c_paper_test[0].unique().tolist()) & set(paper_c_paper_valid[0].unique().tolist())))
+
+# print("Train valid:", abs(len((paper_c_paper_train.flatten().unique().tolist()))-len(data_train[0].unique().tolist())))
+# print("len data train:", len(data_train[0].unique().tolist()))
+
+# print(len(paper_c_paper_valid[0].unique().tolist()))
+# # print((set(paper_c_paper_valid[0].unique().tolist())-set(paper_c_paper_train.flatten().unique().tolist())))
+# # 
+
+# print("Train valid set:", len(set(paper_c_paper_valid[0].unique().tolist()) & set(paper_c_paper_train.flatten().unique().tolist())))
+
+# # print("Train test:", abs(len((paper_c_paper_train.flatten().unique().tolist()))-len(data_test[0].unique().tolist())))
+# # print("valid ", len(nums_valid.unique()))
+# print("test set:", len(set(paper_c_paper_test[0].unique().tolist())))
+# print("test set:", len(nums_test.unique())) 
+# # print((set(paper_c_paper_valid[0].unique().tolist())-set(paper_c_paper_train.flatten().unique().tolist())))
+
+# print(len(((set(paper_c_paper_test[0].unique().tolist())-set(paper_c_paper_train.flatten().unique().tolist())-set(paper_c_paper_valid.flatten().unique().tolist())))))
+
+# print("Train valid set:", len(set(paper_c_paper_test[0].unique().tolist()) & set(paper_c_paper_train.flatten().unique().tolist()) & set(paper_c_paper_valid.flatten().unique().tolist())))
+
+
+# print("nodes in valid", len(nums_valid.unique()))
+# print("set valid", len(set(paper_c_paper_valid[0].unique().tolist())))
+
+# # same for trairning
+
+# print("nodes in train", len(nums_train.unique()))
+# print("set train", len(set(paper_c_paper_train[0].unique().tolist())))
+
+# print("nodes in test", len(nums_test.unique()))
+# print("set test", len(set(paper_c_paper_test[0].unique().tolist())))
+#check if paper ids is in another paper
+
+# # check if any papers overlap between train, valid, and test invidually
+# print("Overlapping paper IDs in train, valid, and test splits:")
+# print("Train:", set(paper_c_paper_train[0].unique().tolist()) & set(paper_c_paper_valid[0].unique().tolist()))
+# print("Valid:", set(paper_c_paper_valid[0].unique().tolist()) & set(paper_c_paper_test[0].unique().tolist()))
+# print("Test:", set(paper_c_paper_test[0].unique().tolist()) & set(paper_c_paper_train[0].unique().tolist()))
+
+
+# torch.save(venue_value, "dataset/ogbn_mag/processed/venue_value.pt")
+
+# # Extract unique filtered paper IDs for train, valid, test splits
+# nums_train_filtered = paper_c_paper_train.unique()
+# nums_valid_filtered = paper_c_paper_valid.unique()
+# nums_test_filtered = paper_c_paper_test.unique()
+
+# # Save these filtered IDs for use later in prep_data
+# torch.save(nums_train_filtered, "dataset/ogbn_mag/processed/nums_train_filtered.pt")
+# torch.save(nums_valid_filtered, "dataset/ogbn_mag/processed/nums_valid_filtered.pt")
+# torch.save(nums_test_filtered, "dataset/ogbn_mag/processed/nums_test_filtered.pt")
