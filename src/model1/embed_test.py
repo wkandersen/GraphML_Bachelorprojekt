@@ -5,7 +5,8 @@ import gc
 from Packages.mini_batches_fast import mini_batches_fast
 from Packages.loss_function import LossFunction
 from Packages.plot_embeddings import set_seed, plot_paper_venue_embeddings
-# from Packages.synthetic_data_mixture import paper_c_paper_train, paper_c_paper_valid, data,venues_values
+from Packages.data_divide import paper_c_paper_train, paper_c_paper_test, data
+# from Packages.synthetic_data_mixture import paper_c_paper_train, paper_c_paper_test, data,venues_values
 import torch.nn as nn
 import torch.nn.functional as F
 from datetime import datetime
@@ -13,6 +14,7 @@ from ogb.nodeproppred import Evaluator
 import traceback
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import wandb
 
 def get_mean_median_embedding(paper_dict, ent_type='paper', method='mean'):
     # Extract all embeddings for the given entity type
@@ -33,7 +35,7 @@ def get_mean_median_embedding(paper_dict, ent_type='paper', method='mean'):
 
 
 set_seed(45)
-
+wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 lr = 0.1
@@ -42,18 +44,31 @@ alpha = 0.1
 eps = 0.001
 lam = 0.01
 batch_size = 1
-embedding_dim = 2
+embedding_dim = 8
 
-save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b1.pt')
-paper_c_paper_train,paper_c_paper_valid = save['paper_c_paper_train'], save['paper_c_paper_valid']
-data,venue_value = save['data'], save['venue_value']
-print(venue_value)
+run = wandb.init(
+    project="Bachelor_projekt",
+    name=f"test_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
+    config={
+        "batch_size": batch_size,
+        "num_epochs": num_epochs,
+        "lr": lr,
+        "alpha": alpha,
+        "lam": lam,
+        "emb_dim": embedding_dim
+    },
+)
 
-num_iterations = len(paper_c_paper_valid[0])
+# save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b1.pt')
+# paper_c_paper_train,paper_c_paper_test = save['paper_c_paper_train'], save['paper_c_paper_test']
+# data,venue_value = save['data'], save['venue_value']
+# print(venue_value)
 
+check = torch.load(f'checkpoint/checkpoint_iter_64_8_50_epoch_18_weight_0.1_with_optimizer.pt', map_location=device)
+paper_dict = check['collected_embeddings']
+venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device)
 
-check = torch.load(f'src/model1/syntetic_data/embed_dict/embed_dict_test.pt', map_location=device)
-paper_dict = check
+num_iterations = len(paper_c_paper_test[0])
 
 # Move all embeddings to device 
 for ent_type in paper_dict:
@@ -72,7 +87,7 @@ all_papers = list(citation_dict.keys())
 loss_function = LossFunction(alpha=alpha, eps=eps, use_regularization=False)
 
 unique_train = set(paper_c_paper_train.flatten().unique().tolist())
-unique_valid = set(paper_c_paper_valid.flatten().unique().tolist())
+unique_valid = set(paper_c_paper_test.flatten().unique().tolist())
 valid_exclusive = unique_valid - unique_train
 l_prev = list(valid_exclusive)
 predictions = {}
@@ -80,16 +95,16 @@ predictions = {}
 counter = 0
 acc = []
 for i in range(num_iterations):
-    mini_b = mini_batches_fast(paper_c_paper_valid, l_prev, batch_size, ('paper', 'cites', 'paper'), data,citation_dict, all_papers,venues=True)
+    mini_b = mini_batches_fast(paper_c_paper_test, l_prev, batch_size, ('paper', 'cites', 'paper'), data,citation_dict, all_papers,venues=True)
     dm, l_next, random_sample = mini_b.data_matrix()
     # print(random_sample)
-    # print(paper_c_paper_valid)
+    # print(paper_c_paper_test)
 
     dm = dm[dm[:, 4] != 4]
 
     if len(dm) < 1:
         # Assign mean embedding to the sample
-        paper_dict['paper'][random_sample[0]] = torch.nn.Parameter(median_emb.clone().to(device))
+        paper_dict['paper'][random_sample[0]] = torch.nn.Parameter(mean_emb.clone().to(device))
 
         # Directly evaluate using the mean embedding (skip training)
         true_label = int(venue_value[random_sample[0]].cpu().numpy())
@@ -135,14 +150,12 @@ for i in range(num_iterations):
             embedding_list.append(paper_dict['paper'][test_item])
 
     if len(embedding_list) == 0:
-        new_embedding = torch.nn.Parameter(torch.randn(embedding_dim, device=device, requires_grad=True))
+        new_embedding = torch.nn.Parameter(mean_emb.clone().to(device))
     else:
         mean_tensor = torch.mean(torch.stack(embedding_list), dim=0)
         new_embedding = torch.nn.Parameter(mean_tensor.clone().to(device))
 
         # print(f"Element-wise mean tensor: {mean_tensor}")
-
-
 
     paper_dict['paper'][random_sample[0]] = new_embedding
     new_optimizer = torch.optim.Adam([paper_dict['paper'][random_sample[0]]], lr=lr)
@@ -158,23 +171,31 @@ for i in range(num_iterations):
         if loss is None:
             print(f"[SKIP] Loss computation failed for sample {random_sample[0]}.")
             counter += 1
-            break
-        loss.backward()
-        new_optimizer.step()
+            break  # exit epoch loop
+        else:
+            final_loss = loss.detach().item()
+            loss.backward()
+            new_optimizer.step()
         
-        current_loss = loss.detach().item()
+        wandb.log({"loss": final_loss})
         
         # Track loss history
-        prev_losses.append(current_loss)
+        prev_losses.append(final_loss)
 
         if len(prev_losses) > patience:
             recent = prev_losses[-patience:]
             if max(recent) - min(recent) < tolerance:
                 print(f"[EARLY STOP] Loss converged after {epoch} epochs.")
                 break
+    
+    if loss is not None:
+        wandb.log({"final_loss": final_loss})
+    else:
+        continue
 
     # print(paper_dict['paper'][random_sample[0]])
-    true_label = int(venue_value[random_sample[0]].cpu().numpy())
+    true_label = int(venue_value[random_sample[0]].cpu().numpy().item())
+
 
     logi_f = []
     
@@ -209,6 +230,7 @@ for i in range(num_iterations):
     evaluator = Evaluator(name='ogbn-mag')
     result = evaluator.eval({'y_true': y_true, 'y_pred': y_pred})
     acc.append(result['acc'])
+    wandb.log({"Accuracy": result['acc']})
 
 
     l_prev = l_next
@@ -225,7 +247,7 @@ filtered_paper_dict = {
 }
 num_papers = len(filtered_paper_dict['paper'])
 
-plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=filtered_paper_dict,sample_size=num_papers,plot_params={
+plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=filtered_paper_dict,sample_size=1000,filename='dataset/ogbn_mag/processed/Predictions/plot_valid_top_5',dim=embedding_dim,top=5,file_params={
         "alpha": alpha,
         "lambda": lam,
         "lr": lr,
@@ -233,11 +255,19 @@ plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=filtered_paper_di
         "dim": embedding_dim
     })
 
-print(counter)
+plot_paper_venue_embeddings(venue_value=venue_value,embed_dict=filtered_paper_dict,sample_size=1000,filename='dataset/ogbn_mag/processed/Predictions/plot_valid_top_1',dim=embedding_dim,top=1,file_params={
+        "alpha": alpha,
+        "lambda": lam,
+        "lr": lr,
+        "epochs": num_epochs,
+        "dim": embedding_dim
+    })
 
-plt.plot(range(1, len(acc) + 1), acc, marker='o')
-plt.xlabel('Run Number')
-plt.ylabel('Accuracy')
-plt.title('Accuracy over Runs')
-plt.grid(True)
-plt.show()
+# print(counter)
+
+# plt.plot(range(1, len(acc) + 1), acc, marker='o')
+# plt.xlabel('Run Number')
+# plt.ylabel('Accuracy')
+# plt.title('Accuracy over Runs')
+# plt.grid(True)
+# plt.show()

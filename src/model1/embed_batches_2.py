@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # from Packages.mini_batches import mini_batches_code
-from src.mini_batches_fast import mini_batches_fast
+from Packages.mini_batches_fast import mini_batches_fast
 from Packages.data_divide import paper_c_paper_train
 from Packages.loss_function import LossFunction
 from Packages.embed_trainer import NodeEmbeddingTrainer
@@ -64,11 +64,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 print("starting")
-checkpoint_epoch = 4
+checkpoint_epoch = 18
 
 # Load initial embeddings
 # embed_dict = torch.load(f"dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_1.pt", map_location=device)
-checkpoint = torch.load(f'checkpoint/checkpoint_iter_64_{embedding_dim}_50_epoch_{checkpoint_epoch}_weight_0.1_with_optimizer.pt',map_location=device)
+checkpoint = torch.load(f'checkpoint/2025-05-26_17-09-15/checkpoint_iter_100_2_50_epoch_48_weight_0.1_with_optimizer.pt',map_location=device)
 embed_dict = checkpoint['collected_embeddings']
 optimizer_state = checkpoint['optimizer_state']
 venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device, weights_only=False)
@@ -108,7 +108,7 @@ print(f'Neg_ratio: {args.neg_ratio}')
 
 run = wandb.init(
     project="Bachelor_projekt",
-    name=f"part_2_5_neg_run_{datetime.now():%Y-%m-%d_%H-%M-%S}, {embedding_dim} and {venue_weight}",
+    name=f"part_4_5_neg_run_{datetime.now():%Y-%m-%d_%H-%M-%S}, {embedding_dim} and {venue_weight}",
     config={
         "batch_size": batch_size,
         "num_epochs": num_epochs,
@@ -206,7 +206,7 @@ for i in range(num_epochs):
         trainer_path = os.path.join(checkpoint_dir, f"trainer_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
         embed_path = os.path.join(checkpoint_dir, f"embed_dict_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
         l_prev_path = os.path.join(checkpoint_dir, f"l_prev_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
-        checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}_weight_{weight}_with_optimizer.pt")
+        checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id+checkpoint_epoch}_weight_{weight}_with_optimizer.pt")
 
 
         # Save checkpoint with both embeddings and optimizer state

@@ -63,3 +63,13 @@ for idx, value in enumerate(data['y_dict']['paper']):
     venue_value[idx] = value
 
 torch.save(venue_value, "dataset/ogbn_mag/processed/venue_value.pt")
+
+# Extract unique filtered paper IDs for train, valid, test splits
+nums_train_filtered = paper_c_paper_train.unique()
+nums_valid_filtered = paper_c_paper_valid.unique()
+nums_test_filtered = paper_c_paper_test.unique()
+
+# Save these filtered IDs for use later in prep_data
+torch.save(nums_train_filtered, "dataset/ogbn_mag/processed/nums_train_filtered.pt")
+torch.save(nums_valid_filtered, "dataset/ogbn_mag/processed/nums_valid_filtered.pt")
+torch.save(nums_test_filtered, "dataset/ogbn_mag/processed/nums_test_filtered.pt")
