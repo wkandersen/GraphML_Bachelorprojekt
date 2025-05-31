@@ -63,9 +63,9 @@ only_in_test = set(paper_c_paper_test_before[0].unique().tolist()) - set(paper_c
 paper_c_paper_test = paper_c_paper_test_before[:, torch.isin(paper_c_paper_test_before[0], torch.tensor(list(only_in_test)))]
 
 # Save these filtered IDs for use later in prep_data
-torch.save(only_in_train, "dataset/ogbn_mag/processed/nums_train_filtered.pt")
-torch.save(only_in_valid, "dataset/ogbn_mag/processed/nums_valid_filtered.pt")
-torch.save(only_in_test, "dataset/ogbn_mag/processed/nums_test_filtered.pt")
+torch.save(list(only_in_train), "dataset/ogbn_mag/processed/nums_train_filtered.pt")
+torch.save(list(only_in_valid), "dataset/ogbn_mag/processed/nums_valid_filtered.pt")
+torch.save(list(only_in_test), "dataset/ogbn_mag/processed/nums_test_filtered.pt")
 
 # check for overlap
 print("Overlap between train and valid:", len(
