@@ -5,7 +5,7 @@ import gc
 from Packages.mini_batches_fast import mini_batches_fast
 from Packages.loss_function import LossFunction
 from Packages.plot_embeddings import set_seed, plot_paper_venue_embeddings
-from Packages.data_divide import paper_c_paper_train, paper_c_paper_test, data
+from Packages.data_divide import paper_c_paper_train, paper_c_paper_test, data,venue_value
 # from Packages.synthetic_data_mixture import paper_c_paper_train, paper_c_paper_test, data,venues_values
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,6 +15,10 @@ import traceback
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import wandb
+
+run_start_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+ckpt_dir = os.path.join("checkpoint/test", run_start_time)
+os.makedirs(ckpt_dir, exist_ok=True)
 
 def get_mean_median_embedding(paper_dict, ent_type='paper', method='mean'):
     # Extract all embeddings for the given entity type
@@ -33,19 +37,37 @@ def get_mean_median_embedding(paper_dict, ent_type='paper', method='mean'):
     else:
         raise ValueError(f"Unsupported method: {method}")
 
+def save_checkpoint(paper_dict, predictions, iteration, save_path, l_next, optimizer=None):
+    checkpoint = {
+        'collected_embeddings': paper_dict,
+        'predictions': predictions,
+        'iteration': iteration,
+        'l_next': l_next,
+        'optimizer': optimizer.state_dict() if optimizer else None
+    }
+    torch.save(checkpoint, save_path)
+    print(f"Checkpoint saved at: {save_path}")
+
+saved_checkpoints = []
+max_saved = 2
 
 set_seed(45)
-wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 lr = 0.1
 num_epochs = 100
 alpha = 0.1
 eps = 0.001
 lam = 0.01
-batch_size = 1
+batch_size = 64
 embedding_dim = 8
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+check = torch.load(f'checkpoint/2025-05-30_10-50-38/checkpoint_iter_64_{embedding_dim}_50_epoch_30_weight_0.1_with_optimizer.pt')
+paper_dict = check['collected_embeddings']
+# venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device)
+
+print('past venue value error')
+wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
 run = wandb.init(
     project="Bachelor_projekt",
     name=f"test_run_{datetime.now():%Y-%m-%d_%H-%M-%S}",
@@ -58,15 +80,6 @@ run = wandb.init(
         "emb_dim": embedding_dim
     },
 )
-
-# save = torch.load(f'src/model1/syntetic_data/embed_dict/save_dim{embedding_dim}_b1.pt')
-# paper_c_paper_train,paper_c_paper_test = save['paper_c_paper_train'], save['paper_c_paper_test']
-# data,venue_value = save['data'], save['venue_value']
-# print(venue_value)
-
-check = torch.load(f'checkpoint/checkpoint_iter_64_8_50_epoch_18_weight_0.1_with_optimizer.pt', map_location=device)
-paper_dict = check['collected_embeddings']
-venue_value = torch.load("dataset/ogbn_mag/processed/venue_value.pt", map_location=device)
 
 num_iterations = len(paper_c_paper_test[0])
 
@@ -137,104 +150,122 @@ for i in range(num_iterations):
         result = evaluator.eval({'y_true': y_true, 'y_pred': y_pred})
         acc.append(result['acc'])
 
-        # l_prev = l_next
-        continue
+        l_prev = l_next
+    else:
     # print(dm)
 
-    test1 = dm[dm[:, 0] == 1]
-    list_test = test1[:, 2].unique().tolist()
+        test1 = dm[dm[:, 0] == 1]
+        list_test = test1[:, 2].unique().tolist()
 
-    embedding_list = []
-    for test_item in list_test:
-        if test_item in paper_dict['paper']:
-            embedding_list.append(paper_dict['paper'][test_item])
+        embedding_list = []
+        for test_item in list_test:
+            if test_item in paper_dict['paper']:
+                embedding_list.append(paper_dict['paper'][test_item])
 
-    if len(embedding_list) == 0:
-        new_embedding = torch.nn.Parameter(mean_emb.clone().to(device))
-    else:
-        mean_tensor = torch.mean(torch.stack(embedding_list), dim=0)
-        new_embedding = torch.nn.Parameter(mean_tensor.clone().to(device))
-
-        # print(f"Element-wise mean tensor: {mean_tensor}")
-
-    paper_dict['paper'][random_sample[0]] = new_embedding
-    new_optimizer = torch.optim.Adam([paper_dict['paper'][random_sample[0]]], lr=lr)
-
-
-    prev_losses = []
-    patience = 5
-    tolerance = 1e-4  # Define how close "very close" means
-
-    for epoch in range(num_epochs):
-        new_optimizer.zero_grad()
-        loss = loss_function.compute_loss(paper_dict, dm)
-        if loss is None:
-            print(f"[SKIP] Loss computation failed for sample {random_sample[0]}.")
-            counter += 1
-            break  # exit epoch loop
+        if len(embedding_list) == 0:
+            new_embedding = torch.nn.Parameter(mean_emb.clone().to(device))
         else:
-            final_loss = loss.detach().item()
-            loss.backward()
-            new_optimizer.step()
+            mean_tensor = torch.mean(torch.stack(embedding_list), dim=0)
+            new_embedding = torch.nn.Parameter(mean_tensor.clone().to(device))
+
+            # print(f"Element-wise mean tensor: {mean_tensor}")
+
+        paper_dict['paper'][random_sample[0]] = new_embedding
+        new_optimizer = torch.optim.Adam([paper_dict['paper'][random_sample[0]]], lr=lr)
+
+
+        prev_losses = []
+        patience = 5
+        tolerance = 1e-4  # Define how close "very close" means
+
+        for epoch in range(num_epochs):
+            new_optimizer.zero_grad()
+            loss = loss_function.compute_loss(paper_dict, dm)
+            if loss is None:
+                print(f"[SKIP] Loss computation failed for sample {random_sample[0]}.")
+                counter += 1
+                break  # exit epoch loop
+            else:
+                final_loss = loss.detach().item()
+                loss.backward()
+                new_optimizer.step()
+            
+            wandb.log({"loss": final_loss})
+            
+            # Track loss history
+            prev_losses.append(final_loss)
+
+            if len(prev_losses) > patience:
+                recent = prev_losses[-patience:]
+                if max(recent) - min(recent) < tolerance:
+                    print(f"[EARLY STOP] Loss converged after {epoch} epochs.")
+                    break
         
-        wandb.log({"loss": final_loss})
+        if loss is not None:
+            wandb.log({"final_loss": final_loss})
+        else:
+            continue
+
+        # print(paper_dict['paper'][random_sample[0]])
+        true_label = int(venue_value[random_sample[0]].cpu().numpy().item())
+
+
+        logi_f = []
         
-        # Track loss history
-        prev_losses.append(final_loss)
+        for j in range(len(paper_dict['venue'])):
+            paper_emb = paper_dict['paper'][random_sample[0]].to(device)
+            venue_emb = paper_dict['venue'][j].to(device)
+            dist = torch.norm(paper_emb - venue_emb) ** 2
+            logi = torch.sigmoid(alpha - dist)
+            logi_f.append((logi.item(), j))
 
-        if len(prev_losses) > patience:
-            recent = prev_losses[-patience:]
-            if max(recent) - min(recent) < tolerance:
-                print(f"[EARLY STOP] Loss converged after {epoch} epochs.")
-                break
-    
-    if loss is not None:
-        wandb.log({"final_loss": final_loss})
-    else:
-        continue
+        logits, node_ids = zip(*logi_f)
+        logi_f_tensor = torch.tensor(logits, device=device)
+        softma = F.softmax(logi_f_tensor, dim=0)
 
-    # print(paper_dict['paper'][random_sample[0]])
-    true_label = int(venue_value[random_sample[0]].cpu().numpy().item())
+        # Rank true label
+        sorted_probs, sorted_indices = torch.sort(softma, descending=True)
+        ranked_venue_ids = [node_ids[i] for i in sorted_indices.tolist()]
+        if true_label in ranked_venue_ids:
+            true_class_rank = ranked_venue_ids.index(true_label) + 1  # 1-based
+        else:
+            true_class_rank = -1  # Not found (shouldn't happen)
 
+        # Store prediction and rank info
+        predicted_node_id = ranked_venue_ids[0]
+        highest_prob_value = sorted_probs[0].item()
+        predictions[random_sample[0]] = (true_label, predicted_node_id, true_class_rank)
 
-    logi_f = []
-    
-    for j in range(len(paper_dict['venue'])):
-        paper_emb = paper_dict['paper'][random_sample[0]].to(device)
-        venue_emb = paper_dict['venue'][j].to(device)
-        dist = torch.norm(paper_emb - venue_emb) ** 2
-        logi = torch.sigmoid(alpha - dist)
-        logi_f.append((logi.item(), j))
+        items = sorted(predictions.items())
+        y_true = torch.tensor([true_pred[0] for _, true_pred in items]).view(-1, 1)
+        y_pred = torch.tensor([true_pred[1] for _, true_pred in items]).view(-1, 1)
 
-    logits, node_ids = zip(*logi_f)
-    logi_f_tensor = torch.tensor(logits, device=device)
-    softma = F.softmax(logi_f_tensor, dim=0)
+        evaluator = Evaluator(name='ogbn-mag')
+        result = evaluator.eval({'y_true': y_true, 'y_pred': y_pred})
+        acc.append(result['acc'])
+        wandb.log({"Accuracy": result['acc']})
 
-    # Rank true label
-    sorted_probs, sorted_indices = torch.sort(softma, descending=True)
-    ranked_venue_ids = [node_ids[i] for i in sorted_indices.tolist()]
-    if true_label in ranked_venue_ids:
-        true_class_rank = ranked_venue_ids.index(true_label) + 1  # 1-based
-    else:
-        true_class_rank = -1  # Not found (shouldn't happen)
+        if len(l_next) == 0:
+            print("No more nodes to process. Exiting.")
+            break
 
-    # Store prediction and rank info
-    predicted_node_id = ranked_venue_ids[0]
-    highest_prob_value = sorted_probs[0].item()
-    predictions[random_sample[0]] = (true_label, predicted_node_id, true_class_rank)
+        l_prev = l_next
+        new_embedding = new_embedding.detach()
 
-    items = sorted(predictions.items())
-    y_true = torch.tensor([true_pred[0] for _, true_pred in items]).view(-1, 1)
-    y_pred = torch.tensor([true_pred[1] for _, true_pred in items]).view(-1, 1)
+    # Save checkpoint every 10 iterations
+    if i % 10 == 0 or i == num_iterations - 1:
+        os.makedirs(ckpt_dir, exist_ok=True)
+        ckpt_path = os.path.join(ckpt_dir, f'checkpoint_iter_{i}_dim_{embedding_dim}.pt')
+        save_checkpoint(paper_dict, predictions, i, ckpt_path, l_next, new_optimizer)
 
-    evaluator = Evaluator(name='ogbn-mag')
-    result = evaluator.eval({'y_true': y_true, 'y_pred': y_pred})
-    acc.append(result['acc'])
-    wandb.log({"Accuracy": result['acc']})
+        saved_checkpoints.append(ckpt_path)
 
+        # Remove older checkpoints if more than max_saved
+        if len(saved_checkpoints) > max_saved:
+            old_files = saved_checkpoints.pop(0)  # Get the oldest checkpoint
+            if os.path.exists(old_files):
+                os.remove(old_files) 
 
-    l_prev = l_next
-    new_embedding = new_embedding.detach()
 
 save_dir = f'dataset/ogbn_mag/processed/Predictions'
 os.makedirs(save_dir, exist_ok=True)
