@@ -9,53 +9,84 @@ import torch.optim as optim
 import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
 
 
-# Set working directory
+# def prep_data():
+#     try:
+#         # Load filtered paper IDs instead of raw CSV splits
+#         nums_train = torch.load("dataset/ogbn_mag/processed/nums_train_filtered.pt")
+#         nums_valid = torch.load("dataset/ogbn_mag/processed/nums_valid_filtered.pt")
+#         nums_test = torch.load("dataset/ogbn_mag/processed/nums_test_filtered.pt")
+#     except FileNotFoundError:
+#         # Fallback to original CSV loading if filtered files not found
+#         print("Fallback to original CSV")
+#         data_train = pd.read_csv('dataset/ogbn_mag/split/time/paper/train.csv.gz', compression='gzip', header=None)
+#         data_valid = pd.read_csv('dataset/ogbn_mag/split/time/paper/valid.csv.gz', compression='gzip', header=None)
+#         data_test = pd.read_csv('dataset/ogbn_mag/split/time/paper/test.csv.gz', compression='gzip', header=None)
+
+#         nums_train = torch.tensor(data_train[0])
+#         nums_valid = torch.tensor(data_valid[0])
+#         nums_test = torch.tensor(data_test[0])
+
+#     data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
+
+#     X = data.x_dict[('paper')]
+#     y = data['y_dict']['paper']
+
+#     X_train, y_train = X[nums_train], y[nums_train]
+#     X_valid, y_valid = X[nums_valid], y[nums_valid]
+#     X_test, y_test = X[nums_test], y[nums_test]
+
+#     y_train = y_train.long()
+#     y_valid = y_valid.long()
+#     y_test = y_test.long()
+
+
+#     return X_train, y_train, X_valid, y_valid, X_test, y_test, y, nums_train, nums_valid, nums_test
+
+
+### With 8 dimensions ###
 def prep_data():
     try:
-        data_train = pd.read_csv('dataset/ogbn_mag/split/time/paper/train.csv.gz', compression='gzip',header = None)
-        data_valid = pd.read_csv('dataset/ogbn_mag/split/time/paper/valid.csv.gz', compression='gzip',header = None)
-        data_test = pd.read_csv('dataset/ogbn_mag/split/time/paper/test.csv.gz', compression='gzip',header = None)
+        # Load filtered paper IDs instead of raw CSV splits
+        nums_train = torch.load("dataset/ogbn_mag/processed/nums_train_filtered.pt")
+        nums_valid = torch.load("dataset/ogbn_mag/processed/nums_valid_filtered.pt")
+        nums_test = torch.load("dataset/ogbn_mag/processed/nums_test_filtered.pt")
     except FileNotFoundError:
-        os.chdir("..")
-        data_train = pd.read_csv('dataset/ogbn_mag/split/time/paper/train.csv.gz', compression='gzip',header = None)
-        data_valid = pd.read_csv('dataset/ogbn_mag/split/time/paper/valid.csv.gz', compression='gzip',header = None)
-        data_test = pd.read_csv('dataset/ogbn_mag/split/time/paper/test.csv.gz', compression='gzip',header = None)
+        # Fallback to original CSV loading if filtered files not found
+        print("Fallback to original CSV")
+        data_train = pd.read_csv('dataset/ogbn_mag/split/time/paper/train.csv.gz', compression='gzip', header=None)
+        data_valid = pd.read_csv('dataset/ogbn_mag/split/time/paper/valid.csv.gz', compression='gzip', header=None)
+        data_test = pd.read_csv('dataset/ogbn_mag/split/time/paper/test.csv.gz', compression='gzip', header=None)
+
+        nums_train = torch.tensor(data_train[0])
+        nums_valid = torch.tensor(data_valid[0])
+        nums_test = torch.tensor(data_test[0])
 
     data, _ = torch.load(r"dataset/ogbn_mag/processed/geometric_data_processed.pt", weights_only=False)
 
-    # Extract edges for "paper" -> "cites" -> "paper"
+
+    embed_train = torch.load("")
+    embed_valid = torch.load("")
+    embed_test = torch.load("")
+
     X = data.x_dict[('paper')]
     y = data['y_dict']['paper']
 
+    X_train, y_train = torch.cat((X[nums_train],embed_train["collected_embeddings"]["paper"].detach()), dim=1), y[nums_train]
+    X_valid, y_valid = torch.cat((X[nums_valid],embed_valid["collected_embeddings"]["paper"].detach()), dim=1), y[nums_valid]
+    X_test, y_test = torch.cat((X[nums_test],embed_test["collected_embeddings"]["paper"].detach()), dim=1), y[nums_test]
 
-    # Unique paper IDs to keep (Ensure it's a PyTorch tensor)
-    nums_valid = torch.tensor(data_valid[0])
-    nums_test = torch.tensor(data_test[0])
-    nums_train = torch.tensor(data_train[0])
-
-
-    # Filter the dataset using indices
-    X_train, y_train = X[nums_train], y[nums_train]
-    X_valid, y_valid = X[nums_valid], y[nums_valid]
-    X_test, y_test = X[nums_test], y[nums_test]
-
-    y_train = y[nums_train].long()
-    y_valid = y[nums_valid].long()
-    y_test = y[nums_test].long()
+    y_train = y_train.long()
+    y_valid = y_valid.long()
+    y_test = y_test.long()
 
 
-
-    return X_train, y_train, X_valid, y_valid, X_test, y_test, y
-
-
-
+    return X_train, y_train, X_valid, y_valid, X_test, y_test, y, nums_train, nums_valid, nums_test
 
 class VenueDataModule(pl.LightningDataModule):
-    def __init__(self, X_train, y_train, X_valid, y_valid, X_test, y_test, batch_size=256):
+    def __init__(self, X_train, y_train, X_valid, y_valid, X_test, y_test, batch_size=128):
         super().__init__()
         self.batch_size = batch_size
         self.train_dataset = TensorDataset(X_train, y_train)
@@ -86,43 +117,18 @@ class VenueClassifier(pl.LightningModule):
             nn.Linear(input_dim, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
+            nn.Dropout(p=dropout_rate),
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.BatchNorm1d(hidden_dim // 2),
             nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, num_classes),
-            nn.LogSoftmax(dim=-1)
+            nn.Dropout(p=dropout_rate),
+            nn.Linear(hidden_dim // 2, num_classes)
         )
 
-        self.criterion = nn.NLLLoss()
-
-
-        hidden_dim2 = hidden_dim // 2
-        hidden_dim3 = hidden_dim2 // 2
-
-        self.model = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=dropout_rate),
-
-            nn.Linear(hidden_dim, hidden_dim2),
-            nn.BatchNorm1d(hidden_dim2),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=dropout_rate),
-
-            nn.Linear(hidden_dim2, hidden_dim3),
-            nn.BatchNorm1d(hidden_dim3),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=dropout_rate),
-
-            nn.Linear(hidden_dim3, num_classes)
-        )
 
         self.criterion = nn.CrossEntropyLoss()
 
-        
+    
     def forward(self, x):
         return self.model(x)
 
@@ -178,11 +184,7 @@ class VenueClassifier(pl.LightningModule):
     def configure_optimizers(self):
         return optim.AdamW(self.parameters(), lr=self.lr, weight_decay=1e-4)
 
-    def plot_metrics(self, path="Plots/128_vector"):
-        import os
-        if not os.path.exists(path):
-            os.makedirs(path)
-
+    def plot_metrics(self, path="src/MLP/lightning_outputs"):
         plt.figure(figsize=(12, 6))
         plt.plot(range(len(self.train_losses)), self.train_losses, label="Training Loss")
         plt.plot(range(len(self.test_losses)), self.test_losses, label="Test Loss")
@@ -191,5 +193,5 @@ class VenueClassifier(pl.LightningModule):
         plt.title('Training vs Test Loss')
         plt.legend()
         plt.tight_layout()
-        plt.savefig(f"{path}/losses_train_vs_test.png")
+        plt.savefig(f"{path}/losses_train_vs_test_mixdata.png")
         plt.close()
