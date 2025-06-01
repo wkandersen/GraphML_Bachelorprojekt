@@ -32,28 +32,6 @@ checkpoint_dir = os.path.join("checkpoint", run_start_time)
 # Create the directory
 os.makedirs(checkpoint_dir, exist_ok=True)
 
-embedding_dim = 2
-b = 1
-saved_checkpoints = []
-max_saved = 2
-save_every_iter = 1
-save = torch.load(f'dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_{b}_hybrid.pt', map_location=device, weights_only=False)
-embed_dict = save
-# paper_c_paper_train = save['paper_c_paper_train']
-# data,venue_value = save['data'], save['venue_value']
-# embed_dict = save['collected_embeddings']
-# emb2d = save['emb2d']
-emb2d  = torch.load('src/hybrid/MLP/embeddings/train_embeddings_dict_max_epochs100.pt', map_location=device, weights_only=False)
-num_papers = len(paper_c_paper_train.unique())
-set_seed(69)
-text = 'test'
-
-
-
-# overall, per_paper = compute_venue_homogeneity(paper_c_paper_train, venue_value)
-# print(f"Overall venue homogeneity: {overall:.4f}")
-
-
 def get_args():
     parser = argparse.ArgumentParser(description='Training configuration')
 
@@ -85,6 +63,29 @@ iterations = args.iterations
 venue_weight = args.venue_weight
 neg_ratio = args.neg_ratio
 
+b = 1
+saved_checkpoints = []
+max_saved = 2
+save_every_iter = 1
+save = torch.load(f'dataset/ogbn_mag/processed/collected_embeddings_{embedding_dim}_spread_{b}_hybrid.pt', map_location=device, weights_only=False)
+embed_dict = save
+# paper_c_paper_train = save['paper_c_paper_train']
+# data,venue_value = save['data'], save['venue_value']
+# embed_dict = save['collected_embeddings']
+# emb2d = save['emb2d']
+emb2d  = torch.load('src/hybrid/MLP/embeddings/train_embeddings_dict_max_epochs100.pt', map_location=device, weights_only=False)
+num_papers = len(paper_c_paper_train.unique())
+set_seed(69)
+text = 'test'
+
+
+
+# overall, per_paper = compute_venue_homogeneity(paper_c_paper_train, venue_value)
+# print(f"Overall venue homogeneity: {overall:.4f}")
+
+
+
+
 wandb.login(key="b26660ac7ccf436b5e62d823051917f4512f987a")
 
 folder = 'test'
@@ -101,7 +102,7 @@ print("starting")
 
 run = wandb.init(
     project="Bachelor_projekt",
-    name=f"hybrid_embed_batches_{datetime.now():%Y-%m-%d_%H-%M-%S}, {embedding_dim} and {venue_weight}",
+    name=f"wo_probs_hybrid_embed_batches_dim{embedding_dim}_{datetime.now():%Y-%m-%d_%H-%M-%S}",
     config={
         "batch_size": batch_size,
         "num_epochs": num_epochs,
@@ -187,15 +188,15 @@ for i in range(num_epochs):
         wandb.log({"venue_loss": loss_ven.detach().item()})
         # print(f"after: {embed_dict['paper'][random_sample[0]]}")
 
-                # Get predicted probabilities and labels for this batch
-        probs, labels = loss_function.get_probs_and_labels_hybrid(embed_dict, dm,emb2d)
+        #         # Get predicted probabilities and labels for this batch
+        # probs, labels = loss_function.get_probs_and_labels_hybrid(embed_dict, dm,emb2d)
 
-        # Move to CPU and numpy for numpy histogram plotting
-        probs_np = probs.cpu().numpy()
-        labels_np = labels.cpu().numpy()
+        # # Move to CPU and numpy for numpy histogram plotting
+        # probs_np = probs.cpu().numpy()
+        # labels_np = labels.cpu().numpy()
 
-        all_pos_probs.append(probs_np[labels_np == 1])
-        all_neg_probs.append(probs_np[labels_np == 0])
+        # all_pos_probs.append(probs_np[labels_np == 1])
+        # all_neg_probs.append(probs_np[labels_np == 0])
 
         print(f"Loss: {loss.detach().item()}")
         # Update node list for the next iteration
@@ -232,7 +233,7 @@ for i in range(num_epochs):
         trainer_path = os.path.join(checkpoint_dir, f"trainer_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
         embed_path = os.path.join(checkpoint_dir, f"embed_dict_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
         l_prev_path = os.path.join(checkpoint_dir, f"l_prev_hybrid_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}.pt")
-        checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_hybrid_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id+checkpoint_epoch}_weight_{weight}_with_optimizer.pt")
+        checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_hybrid_iter_{batch_size}_{embedding_dim}_{num_epochs}_epoch_{iter_id}_weight_{weight}_with_optimizer.pt")
 
         # Save checkpoint with both embeddings and optimizer state
         checkpoint = {
